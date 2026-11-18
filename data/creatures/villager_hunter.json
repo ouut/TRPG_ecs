@@ -1,0 +1,35 @@
+{
+  "desc": "猎手，夜里眼睛会发光，从不走空",
+  "faction": "villagers",
+  "health": 13,
+  "id": "villager_hunter",
+  "mutations": [
+    {
+      "id": "night_vision",
+      "level": 1
+    }
+  ],
+  "name": "夜鹰",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "hunt_outside",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "hunting",
+      "level": 3
+    },
+    {
+      "id": "tracking",
+      "level": 2
+    }
+  ],
+  "stats": {
+    "agi": 13,
+    "str": 10,
+    "tou": 9,
+    "wil": 10
+  },
+  "version": 1
+}

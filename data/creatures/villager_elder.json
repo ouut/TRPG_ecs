@@ -1,0 +1,26 @@
+{
+  "desc": "村长，记得三十年前红沙之战的每一个名字",
+  "faction": "villagers",
+  "health": 10,
+  "id": "villager_elder",
+  "mutations": [],
+  "name": "石爷",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "tell_stories",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "lore",
+      "level": 3
+    }
+  ],
+  "stats": {
+    "agi": 7,
+    "str": 7,
+    "tou": 9,
+    "wil": 14
+  },
+  "version": 1
+}

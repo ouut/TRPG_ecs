@@ -1,0 +1,9 @@
+{
+  "desc": "细铁丝弯成的开锁器，拾荒者最爱",
+  "id": "lockpick",
+  "kind": "material",
+  "name": "开锁器",
+  "value": 8,
+  "version": 1,
+  "weight": 1
+}

@@ -1,0 +1,10 @@
+{
+  "desc": "双手长出弯钩一样的爪子",
+  "effect": {
+    "unarmed_damage_bonus": 2
+  },
+  "id": "claws",
+  "kind": "passive",
+  "name": "利爪",
+  "version": 1
+}

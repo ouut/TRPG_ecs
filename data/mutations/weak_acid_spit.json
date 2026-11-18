@@ -1,0 +1,11 @@
+{
+  "cooldown_ticks": 20,
+  "desc": "能喷出一小口腐蚀性的酸液",
+  "effect": {
+    "acid_damage": 4
+  },
+  "id": "weak_acid_spit",
+  "kind": "active",
+  "name": "喷酸（弱）",
+  "version": 1
+}

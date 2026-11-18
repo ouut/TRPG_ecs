@@ -1,0 +1,14 @@
+{
+  "desc": "村里巡逻兵用的长矛，矛头磨得很亮",
+  "id": "iron_spear",
+  "kind": "weapon",
+  "name": "铁矛",
+  "value": 18,
+  "version": 1,
+  "weapon": {
+    "damage": 5,
+    "range": 2,
+    "type": "pierce"
+  },
+  "weight": 4
+}

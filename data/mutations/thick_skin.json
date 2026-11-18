@@ -1,0 +1,10 @@
+{
+  "desc": "皮肤硬得像鞣过的皮",
+  "effect": {
+    "armor_bonus": 2
+  },
+  "id": "thick_skin",
+  "kind": "passive",
+  "name": "厚皮",
+  "version": 1
+}

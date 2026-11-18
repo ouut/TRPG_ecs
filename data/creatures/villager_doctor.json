@@ -1,0 +1,26 @@
+{
+  "desc": "村里的医生，药柜里总有一股苦味",
+  "faction": "villagers",
+  "health": 11,
+  "id": "villager_doctor",
+  "mutations": [],
+  "name": "白芷",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "tend_clinic",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "healing",
+      "level": 3
+    }
+  ],
+  "stats": {
+    "agi": 9,
+    "str": 7,
+    "tou": 8,
+    "wil": 13
+  },
+  "version": 1
+}

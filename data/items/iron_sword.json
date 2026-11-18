@@ -1,0 +1,14 @@
+{
+  "desc": "一把普通的铁剑，刃口有几个缺口",
+  "id": "iron_sword",
+  "kind": "weapon",
+  "name": "铁剑",
+  "value": 20,
+  "version": 1,
+  "weapon": {
+    "damage": 6,
+    "range": 1,
+    "type": "slash"
+  },
+  "weight": 3
+}

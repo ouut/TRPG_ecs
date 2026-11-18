@@ -1,0 +1,26 @@
+{
+  "desc": "村里的厨子，一锅汤能换半袋水",
+  "faction": "villagers",
+  "health": 11,
+  "id": "villager_cook",
+  "mutations": [],
+  "name": "阿香",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "cook_meals",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "cooking",
+      "level": 3
+    }
+  ],
+  "stats": {
+    "agi": 9,
+    "str": 8,
+    "tou": 10,
+    "wil": 10
+  },
+  "version": 1
+}

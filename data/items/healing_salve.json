@@ -1,0 +1,12 @@
+{
+  "consumable": {
+    "heal_amount": 6
+  },
+  "desc": "白芷配的药膏，涂上伤口会发凉",
+  "id": "healing_salve",
+  "kind": "consumable",
+  "name": "伤药膏",
+  "value": 15,
+  "version": 1,
+  "weight": 1
+}

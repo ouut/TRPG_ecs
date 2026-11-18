@@ -1,0 +1,35 @@
+{
+  "desc": "守在遗迹里的机械教团隐士，脑子里总有机器的低鸣",
+  "faction": "mechanists",
+  "health": 12,
+  "id": "mechanist_hermit",
+  "mutations": [
+    {
+      "id": "weak_telepathy",
+      "level": 1
+    }
+  ],
+  "name": "锈眼",
+  "prefab": "Hermit",
+  "schedule": {
+    "day": "guard_ruin",
+    "night": "meditate_ruin"
+  },
+  "skills": [
+    {
+      "id": "tinkering",
+      "level": 3
+    },
+    {
+      "id": "lore",
+      "level": 2
+    }
+  ],
+  "stats": {
+    "agi": 8,
+    "str": 7,
+    "tou": 8,
+    "wil": 14
+  },
+  "version": 1
+}

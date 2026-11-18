@@ -1,0 +1,11 @@
+{
+  "attitude": {
+    "mechanists": 0,
+    "scavengers": -20
+  },
+  "desc": "住在村子里的普通人",
+  "home_map": "joppa",
+  "id": "villagers",
+  "name": "村民",
+  "version": 1
+}

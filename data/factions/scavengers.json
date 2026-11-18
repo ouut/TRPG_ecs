@@ -1,0 +1,11 @@
+{
+  "attitude": {
+    "mechanists": -10,
+    "villagers": -20
+  },
+  "desc": "流浪者，偶尔交易，偶尔抢劫",
+  "home_map": "joppa",
+  "id": "scavengers",
+  "name": "拾荒者",
+  "version": 1
+}

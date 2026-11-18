@@ -1,0 +1,30 @@
+{
+  "desc": "旅店老板娘，消息比酒更值钱",
+  "faction": "villagers",
+  "health": 12,
+  "id": "villager_innkeeper",
+  "mutations": [],
+  "name": "阿桂",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "run_inn",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "trading",
+      "level": 2
+    },
+    {
+      "id": "brewing",
+      "level": 2
+    }
+  ],
+  "stats": {
+    "agi": 10,
+    "str": 8,
+    "tou": 9,
+    "wil": 12
+  },
+  "version": 1
+}

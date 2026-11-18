@@ -1,0 +1,26 @@
+{
+  "desc": "村里的铁匠，左手少了一根手指",
+  "faction": "villagers",
+  "health": 14,
+  "id": "villager_blacksmith",
+  "mutations": [],
+  "name": "铁匠",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "work_at_forge",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "smithing",
+      "level": 3
+    }
+  ],
+  "stats": {
+    "agi": 8,
+    "str": 12,
+    "tou": 12,
+    "wil": 10
+  },
+  "version": 1
+}

@@ -1,0 +1,12 @@
+{
+  "armor": {
+    "defense": 2
+  },
+  "desc": "鞣过的兽皮甲，轻便但挡不住重击",
+  "id": "leather_armor",
+  "kind": "armor",
+  "name": "皮甲",
+  "value": 25,
+  "version": 1,
+  "weight": 5
+}

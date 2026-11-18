@@ -1,0 +1,12 @@
+{
+  "consumable": {
+    "thirst_restore": 30
+  },
+  "desc": "装满清水的皮水囊，村里硬通货",
+  "id": "water_flask",
+  "kind": "consumable",
+  "name": "水囊",
+  "value": 10,
+  "version": 1,
+  "weight": 2
+}

@@ -1,0 +1,31 @@
+{
+  "desc": "铁匠学徒，多长了一对手臂，抡锤比师父还快",
+  "faction": "villagers",
+  "health": 12,
+  "id": "villager_apprentice",
+  "mutations": [
+    {
+      "id": "extra_arms",
+      "level": 1
+    }
+  ],
+  "name": "小锤",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "learn_smithing",
+    "night": "go_home"
+  },
+  "skills": [
+    {
+      "id": "smithing",
+      "level": 2
+    }
+  ],
+  "stats": {
+    "agi": 11,
+    "str": 10,
+    "tou": 10,
+    "wil": 8
+  },
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "desc": "多长一对手臂，能多拿一件武器",
+  "effect": {
+    "extra_weapon_slots": 1
+  },
+  "id": "extra_arms",
+  "kind": "passive",
+  "name": "多臂",
+  "version": 1
+}

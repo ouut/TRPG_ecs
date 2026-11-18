@@ -1,0 +1,10 @@
+{
+  "desc": "在黑暗中看得更远",
+  "effect": {
+    "perception_bonus_night": 3
+  },
+  "id": "night_vision",
+  "kind": "passive",
+  "name": "夜视",
+  "version": 1
+}

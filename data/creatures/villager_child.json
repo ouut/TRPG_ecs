@@ -1,0 +1,21 @@
+{
+  "desc": "村里最小的孩子，整天追着鸡跑",
+  "faction": "villagers",
+  "health": 8,
+  "id": "villager_child",
+  "mutations": [],
+  "name": "小豆",
+  "prefab": "Villager",
+  "schedule": {
+    "day": "play_in_village",
+    "night": "go_home"
+  },
+  "skills": [],
+  "stats": {
+    "agi": 11,
+    "str": 5,
+    "tou": 6,
+    "wil": 8
+  },
+  "version": 1
+}

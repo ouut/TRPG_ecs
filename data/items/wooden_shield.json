@@ -1,0 +1,12 @@
+{
+  "armor": {
+    "defense": 1
+  },
+  "desc": "钉着铁边的圆木盾，上面有三道划痕",
+  "id": "wooden_shield",
+  "kind": "armor",
+  "name": "木盾",
+  "value": 12,
+  "version": 1,
+  "weight": 4
+}

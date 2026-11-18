@@ -1,0 +1,12 @@
+{
+  "desc": "红沙之王的权杖，杖头还嵌着一颗暗红的宝石",
+  "id": "red_sand_scepter",
+  "kind": "quest_item",
+  "name": "红沙权杖",
+  "quest": {
+    "history": "三十年前红沙之战后遗失在东边遗迹"
+  },
+  "value": 200,
+  "version": 1,
+  "weight": 2
+}

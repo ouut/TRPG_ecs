@@ -1,0 +1,26 @@
+{
+  "desc": "村口巡逻兵，盾牌上刻着三道划痕",
+  "faction": "villagers",
+  "health": 16,
+  "id": "patrol_guard_1",
+  "mutations": [],
+  "name": "铁柱",
+  "prefab": "Guard",
+  "schedule": {
+    "day": "patrol_village",
+    "night": "guard_gate"
+  },
+  "skills": [
+    {
+      "id": "guarding",
+      "level": 3
+    }
+  ],
+  "stats": {
+    "agi": 9,
+    "str": 12,
+    "tou": 12,
+    "wil": 9
+  },
+  "version": 1
+}

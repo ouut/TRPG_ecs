@@ -1,0 +1,11 @@
+{
+  "cooldown_ticks": 20,
+  "desc": "能短暂读到附近生物的表层想法",
+  "effect": {
+    "mind_read_range": 3
+  },
+  "id": "weak_telepathy",
+  "kind": "active",
+  "name": "心灵感应（弱）",
+  "version": 1
+}

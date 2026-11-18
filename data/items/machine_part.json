@@ -1,0 +1,9 @@
+{
+  "desc": "从旧机器上拆下的零件，机械教团很想要",
+  "id": "machine_part",
+  "kind": "material",
+  "name": "机器零件",
+  "value": 30,
+  "version": 1,
+  "weight": 3
+}

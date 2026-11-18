@@ -1,0 +1,11 @@
+{
+  "attitude": {
+    "scavengers": -10,
+    "villagers": 0
+  },
+  "desc": "崇拜旧机器的团体，守着一处遗迹",
+  "home_map": "red_sand_ruin",
+  "id": "mechanists",
+  "name": "机械教团",
+  "version": 1
+}

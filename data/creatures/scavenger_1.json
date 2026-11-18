@@ -1,0 +1,30 @@
+{
+  "desc": "拾荒者头目，笑起来只剩牙",
+  "faction": "scavengers",
+  "health": 12,
+  "id": "scavenger_1",
+  "mutations": [],
+  "name": "瘦猴",
+  "prefab": "Scavenger",
+  "schedule": {
+    "day": "scavenge_ruins",
+    "night": "camp_outside"
+  },
+  "skills": [
+    {
+      "id": "sneaking",
+      "level": 3
+    },
+    {
+      "id": "trading",
+      "level": 1
+    }
+  ],
+  "stats": {
+    "agi": 12,
+    "str": 9,
+    "tou": 8,
+    "wil": 10
+  },
+  "version": 1
+}

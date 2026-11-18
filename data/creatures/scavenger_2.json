@@ -1,0 +1,31 @@
+{
+  "desc": "拾荒者，双手长着弯钩一样的爪子",
+  "faction": "scavengers",
+  "health": 13,
+  "id": "scavenger_2",
+  "mutations": [
+    {
+      "id": "claws",
+      "level": 1
+    }
+  ],
+  "name": "爪子",
+  "prefab": "Scavenger",
+  "schedule": {
+    "day": "scavenge_ruins",
+    "night": "camp_outside"
+  },
+  "skills": [
+    {
+      "id": "sneaking",
+      "level": 2
+    }
+  ],
+  "stats": {
+    "agi": 11,
+    "str": 11,
+    "tou": 10,
+    "wil": 8
+  },
+  "version": 1
+}
