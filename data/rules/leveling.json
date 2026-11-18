@@ -1,0 +1,1 @@
+{"id":"leveling","note":"No global character level. Each skill levels on its own by use: a blacksmith who smiths all day levels crafting fast and never levels stealth.","rule":{"xp_on_fail":3,"xp_on_success":10,"xp_per_level":"100 * current_level"},"source_doc":"ecs-architecture.md v1.0/v1.1, section 4.3","version":1}

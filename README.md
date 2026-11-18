@@ -10,3 +10,4 @@ Voice-first, lightweight 2D multiplayer living RPG with a real-time AI Dungeon M
   - `data/examples/` — blacksmith in JSON and TOML, verified identical
 
 Expanded MVP: 60x45 village map `joppa` + 40x30 ruin map `red_sand_ruin`, 5 in-game days, faction chain reactions, cross-map travel, and a legendary item.
+
