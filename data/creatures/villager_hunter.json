@@ -3,12 +3,6 @@
   "faction": "villagers",
   "health": 13,
   "id": "villager_hunter",
-  "mutations": [
-    {
-      "id": "night_vision",
-      "level": 1
-    }
-  ],
   "name": "夜鹰",
   "prefab": "Villager",
   "schedule": {
@@ -26,10 +20,16 @@
     }
   ],
   "stats": {
-    "agi": 13,
+    "dex": 13,
+    "int": 10,
     "str": 10,
-    "tou": 9,
     "wil": 10
   },
+  "traits": [
+    {
+      "id": "night_vision",
+      "level": 1
+    }
+  ],
   "version": 1
 }

@@ -1,11 +1,4 @@
 {
-  "id": "action_speed",
-  "version": 1,
-  "source_doc": "ecs-architecture.md v1.3, section 3.2",
-  "reaction": {
-    "formula": "reaction = 0.5 * perception + 0.3 * intelligence + 0.2 * will",
-    "order_key": "order_key = reaction + d20 (WorldRng)"
-  },
   "execution_profiles": [
     {
       "action": "move",
@@ -30,5 +23,12 @@
   ],
   "flexibility": {
     "note": "Flexibility is computed, not stored: weighted health of legs, joints and muscle minus load penalty. It changes with injury, load and fatigue."
-  }
+  },
+  "id": "action_speed",
+  "reaction": {
+    "formula": "reaction = 0.5 * perception + 0.3 * intelligence + 0.2 * will",
+    "order_key": "order_key = reaction + d20 (WorldRng)"
+  },
+  "source_doc": "ecs-architecture.md v2.0, section 3.2",
+  "version": 1
 }

@@ -6,8 +6,8 @@
     "sleep_resets_fatigue": true
   },
   "id": "needs",
-  "max_hp_formula": "max_hp = 10 + heart_health * 0.5 + lung_health * 0.3 + brain_health * 0.2 (organ health = BodyPart.hp / max_hp; weights in data)",
-  "max_hp_note": "v1.3: no single constitution modifier. Vitality is computed from organ health, see ecs-architecture.md section 4.3.",
+  "max_hp_formula": "max_hp = 20 * (0.5 * heart_health + 0.3 * lung_health + 0.2 * brain_health) (organ health = BodyPart.hp / max_hp; weights in data)",
+  "max_hp_note": "v2.0: no single constitution modifier. Vitality is computed from organ health, see ecs-architecture.md section 2.6.",
   "needs": {
     "per_tick": 1,
     "range": [
@@ -22,6 +22,6 @@
       "fatigue"
     ]
   },
-  "source_doc": "ecs-architecture.md v1.0/v1.1, section 4.3",
+  "source_doc": "ecs-architecture.md v2.0, sections 2.6 and 6.1",
   "version": 1
 }

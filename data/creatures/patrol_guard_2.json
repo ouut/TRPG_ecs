@@ -3,12 +3,6 @@
   "faction": "villagers",
   "health": 18,
   "id": "patrol_guard_2",
-  "mutations": [
-    {
-      "id": "thick_skin",
-      "level": 1
-    }
-  ],
   "name": "石头",
   "prefab": "Guard",
   "schedule": {
@@ -22,10 +16,16 @@
     }
   ],
   "stats": {
-    "agi": 8,
+    "dex": 8,
+    "int": 8,
     "str": 13,
-    "tou": 14,
     "wil": 8
   },
+  "traits": [
+    {
+      "id": "thick_skin",
+      "level": 1
+    }
+  ],
   "version": 1
 }

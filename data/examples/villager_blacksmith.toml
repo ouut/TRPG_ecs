@@ -5,13 +5,13 @@ desc = "村里的铁匠，左手少了一根手指"
 prefab = "Villager"
 health = 14
 faction = "villagers"
-mutations = []
+traits = []
 
 [stats]
 str = 12
-agi = 8
+dex = 8
 wil = 10
-tou = 12
+int = 10
 
 [[skills]]
 id = "smithing"

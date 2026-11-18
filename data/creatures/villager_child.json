@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 8,
   "id": "villager_child",
-  "mutations": [],
   "name": "小豆",
   "prefab": "Villager",
   "schedule": {
@@ -12,10 +11,11 @@
   },
   "skills": [],
   "stats": {
-    "agi": 11,
+    "dex": 11,
+    "int": 8,
     "str": 5,
-    "tou": 6,
     "wil": 8
   },
+  "traits": [],
   "version": 1
 }

@@ -3,12 +3,6 @@
   "faction": "scavengers",
   "health": 13,
   "id": "scavenger_2",
-  "mutations": [
-    {
-      "id": "claws",
-      "level": 1
-    }
-  ],
   "name": "爪子",
   "prefab": "Scavenger",
   "schedule": {
@@ -22,10 +16,16 @@
     }
   ],
   "stats": {
-    "agi": 11,
+    "dex": 11,
+    "int": 8,
     "str": 11,
-    "tou": 10,
     "wil": 8
   },
+  "traits": [
+    {
+      "id": "claws",
+      "level": 1
+    }
+  ],
   "version": 1
 }

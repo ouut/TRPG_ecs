@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 10,
   "id": "villager_elder",
-  "mutations": [],
   "name": "石爷",
   "prefab": "Villager",
   "schedule": {
@@ -17,10 +16,11 @@
     }
   ],
   "stats": {
-    "agi": 7,
+    "dex": 7,
+    "int": 14,
     "str": 7,
-    "tou": 9,
     "wil": 14
   },
+  "traits": [],
   "version": 1
 }

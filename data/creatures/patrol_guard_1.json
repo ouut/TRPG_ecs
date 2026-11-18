@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 16,
   "id": "patrol_guard_1",
-  "mutations": [],
   "name": "铁柱",
   "prefab": "Guard",
   "schedule": {
@@ -17,10 +16,11 @@
     }
   ],
   "stats": {
-    "agi": 9,
+    "dex": 9,
+    "int": 9,
     "str": 12,
-    "tou": 12,
     "wil": 9
   },
+  "traits": [],
   "version": 1
 }

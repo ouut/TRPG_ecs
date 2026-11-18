@@ -1,6 +1,7 @@
 # Ewil 活世界基座：ECS 架构设计
 
 - 版本：v2.0（2026-11-18）
+- 本次修订（2026-11-18）：修复审计发现的问题——`Intent` 单写者、`Phase` 自定义管线、事件否决时序、DM 动作数、候选动作与 `Goal` 组件、技能发现不建全局文件、环境写者、重生与尸体清理、场景组件、多人输入排序、§2.9 / §9.2 血量与器官公式对齐。版本号不变，不另起变更日志。
 - 日期：2026-11-18
 - 目标产品：语音优先、轻量 2D、多人在线、实时 AI DM 的活世界 RPG（见 `Product_Concept_Ewil_ChaoChen__1.pdf`）
 - 定位：本文档只写 live world 这个基座，不写完整游戏，不写上层应用。
@@ -79,9 +80,9 @@
 
 玩家实体和 NPC 实体是同一种实体、同一种 archetype、同样的组件、同样的系统、同样的效用 AI。玩家只是在 NPC 上叠加了用户输入：
 
-- **在线时**，用户输入以最高优先级注入 `Intent`。效用 AI 仍在跑，但用户输入覆盖它——玩家说“往东走”，这个 `Intent` 优先于效用 AI 选出的 `Intent`。
+- **在线时**，用户输入不直接写 `Intent`。输入层（键盘、DM 翻译出的 `ActionCommand`）只写 `InputCommand` 组件；`DecisionSystem` 在 Decide phase 合并它——有本 tick 的 `InputCommand` 就按它生成 `Intent`，`InputCommand` 优先于效用 AI 选出的意图；没有 `InputCommand`，效用 AI 按同一套打分接管。`Intent` 的唯一写者始终是 `DecisionSystem`（见第 4.3 节），输入层只写 `InputCommand`，只读 `Intent`。
 - **下线时**，输入断开，效用 AI 按同一套打分接管玩家实体（见第 5 节）。没有“玩家版”和“NPC 版”两套规则，没有离线保护，没有禁掉的行动种类：打架、送东西、去危险地方，全由效用 AI 按分数定，后果真实发生、记进事件日志。玩家上线时控制权交还，接管期间做的事全部在事件日志里，玩家回来能一条一条查。
-- **一个世界能进几个人先不限制。** 前期人越多越好，涌现才容易出现，问题才能暴露得早；出现瓶颈再定上限，不提前设人数上限来防还没出现的问题。
+- **一个世界能进几个人先不限制。** 前期人越多越好，涌现才容易出现，问题才能暴露得早；出现瓶颈再定上限，不提前设人数上限来防还没出现的问题。多人输入的排序见第 3.2 节：所有输入进同一个 Action 队列按 `order_key` 排，玩家输入的优先只针对该实体自己的效用 AI，不优先于其他实体。
 
 ### 2.2 世界层级
 
@@ -97,15 +98,15 @@ World（单例实体，挂 WorldState）
 ```
 
 - 两张地图：村子 `joppa`（60x45）+ 东边遗迹 `red_sand_ruin`（40x30）。两张地图共 60x45 + 40x30 = 3900 格，在预算内。
-- 地图大小可变，一张图里分多个场景（村子里的铺子、广场、村口、田地就是不同的场景）。一个场景是一个模拟单元，场景内所有实体逐 tick 全量跑；场景之间没有每 tick 的细粒度耦合，只有显式移动（走出场景 / 走进场景）和事件（EventBus）跨场景。加内容就加场景、加地图。场景分治的细节等性能成为瓶颈再讨论。
+- 地图大小可变，一张图里分多个场景（村子里的铺子、广场、村口、田地就是不同的场景）。一个场景是一个模拟单元，场景内所有实体逐 tick 全量跑；场景之间没有每 tick 的细粒度耦合，只有显式移动（走出场景 / 走进场景）和事件（EventBus）跨场景。场景边界是地图数据里的矩形：每张地图的数据给每个场景一个矩形区域，实体跨过矩形边界就是跨场景，`Scene` 组件由 `MovementSystem` 改写（见第 2.5 节）。加内容就加场景、加地图。场景分治的细节等性能成为瓶颈再讨论。
 
 ### 2.3 环境：实体，能被编辑，格子方式
 
 环境不是静态背景，不是“地图画好了就不再变”。环境里的每一类东西都是实体或组件，都有状态，都会变，都能被 NPC 和玩家编辑：
 
-- **地块（Plot）：** 每个格子是一个地块实体，挂 `Soil`（土壤类型、肥力）、`Moisture`（湿度）、`Temperature`（温度）、`Vegetation`（植被覆盖）。下雨湿度涨，太阳晒温度涨，种地肥力降，烧荒植被清零，这些都是地块组件的变化，可查、可回放。
-- **植物：** 每株植物是一个实体，挂 `Growth`（生长阶段）、`Health`、`Species`。植物会长（按阳光、水分、土壤肥力每 tick 长一点）、会扩散（成熟后向邻近地块播种）、会被吃（动物和人吃掉果实和叶子）、会被砍（变成木材）、会被烧（变成灰，灰反过来提高土壤肥力）。种地、浇水、施肥、除草，都是 NPC 对植物和地块做的编辑。
-- **动物：** 每只动物是一个实体，和人一样挂 `Health`、`Body`、`Needs`、`Personality`、`Memory`，走同一套效用 AI、同一套 tick。动物会饿、会找食、会逃跑、会被捕食、会繁殖。猎手打猎是真的在改动物的数量，动物少了，猎手下次就得走更远；狼多了，村民的羊就少了。动物不是刷新出来的背景怪，是世界里的居民。
+- **地块（Plot）：** 每个格子是一个地块实体，挂 `Soil`（土壤类型、肥力）、`Moisture`（湿度）、`Temperature`（温度）、`Vegetation`（植被覆盖）。下雨湿度涨，太阳晒温度涨，种地肥力降，烧荒植被清零，这些都是地块组件的变化，可查、可回放。**没有单独的 WeatherSystem：** 天气是 `EnvironmentSystem` 在 Clock phase 里的一步（雨涨湿度、日晒涨温度、肥力随之变化），不是独立系统；`Soil` / `Moisture` / `Temperature` / `Vegetation` / `MicrobeDensity` 的唯一写者都是 `EnvironmentSystem`（见第 4.3 节）。
+- **植物：** 每株植物是一个实体，挂 `Growth`（生长阶段）、`Health`、`Species`。植物会长（按阳光、水分、土壤肥力每 tick 长一点）、会扩散（成熟后向邻近地块播种，**只向空的相邻地块播种，一格最多一株植物**，见第 11.3 节有界增长）、会被吃（动物和人吃掉果实和叶子）、会被砍（变成木材）、会被烧（变成灰，灰反过来提高土壤肥力）。种地、浇水、施肥、除草，都是 NPC 对植物和地块做的编辑。
+- **动物：** 每只动物是一个实体，和人一样挂 `Health`、`Body`、`Needs`、`Personality`、`Memory`，走同一套效用 AI、同一套 tick。动物会饿、会找食、会逃跑、会被捕食、会繁殖（**繁殖只在该场景内动物数低于数据定义的上限时发生**，第一版草案值 20 只 / 场景，见第 11.3 节）。猎手打猎是真的在改动物的数量，动物少了，猎手下次就得走更远；狼多了，村民的羊就少了。动物不是刷新出来的背景怪，是世界里的居民。
 - **微生物：** 微生物不按个体建实体。微生物按密度和作用模拟：挂在土壤、食物、身体上的组件，如 `MicrobeDensity`（密度 0–100）+ `MicrobeKind`（腐烂菌、发酵菌、病菌、固氮菌）。作用是真实的：食物放久了腐烂菌密度涨了就变质，吃了拉肚子；酒和面包靠发酵菌；伤口感染是病菌密度涨了；土壤肥力靠固氮菌和腐烂菌。微生物看不见，但它的作用看得见。
 - **编辑就是模拟：** 砍树、挖土、种地、筑坝、烧荒、修路、盖房子，都是 NPC 和玩家对环境实体做的普通行动，走同一套 `ActionCommand` 和事件机制，不另起一套“建造系统”。编辑完，环境的状态就变了：树没了就是没了，坝筑起来了水就改道了，烧过的地肥力变了。下一个 NPC 和玩家面对的就是改过之后的环境，这就是环境和人的交互长出来的历史。
 
@@ -120,11 +121,11 @@ World（单例实体，挂 WorldState）
 | 类 | 回答的问题 | 例子 |
 |---|---|---|
 | （1）标识与呈现 | 它是谁、是什么？ | `Name`、`Player` |
-| （2）空间 | 它在哪？ | `Position` |
+| （2）空间 | 它在哪？ | `Position`、`Scene` |
 | （3）物质与物理 | 它由什么构成、物理上怎么表现？ | `Item` |
 | （4）生命与身体 | 它的身体状态如何？ | `Health`、`Body`、`BodyPart`、`Needs` |
 | （5）能力 | 它能做什么、做得多好？ | `Stats`、`Skill`、`Trait`、`Weapon`、`Energy` |
-| （6）认知与决策 | 它知道什么、想要什么、决定做什么？ | `Perception`、`Memory`、`Schedule`、`Personality`、`AIState` |
+| （6）认知与决策 | 它知道什么、想要什么、决定做什么？ | `Perception`、`Memory`、`Schedule`、`Personality`、`AIState`、`Goal`、`InputCommand`、`Intent` |
 | （7）关系与社会 | 它和谁有什么关系、在社会里是什么位置？ | `Faction`、`Reputation`、对话、交易 |
 | （8）世界与环境 | 世界本身是什么状态？ | `Plot`、`Soil`、`Moisture`、`Temperature`、`Vegetation`、`MicrobeDensity`、`TileEffect`、`Map` |
 
@@ -151,6 +152,7 @@ World（单例实体，挂 WorldState）
 | 组件 | 字段（Rust） | 说明 |
 |---|---|---|
 | `Position` | `x: i32, y: i32, map: Entity` | 网格坐标。移动只改这个组件，渲染只读它 |
+| `Scene` | `scene_id: String` | 实体当前所在场景。场景边界是地图数据里的矩形，跨边界时由 `MovementSystem` 改写（见第 2.2 节） |
 
 **（3）物质与物理**
 
@@ -188,6 +190,9 @@ World（单例实体，挂 WorldState）
 | `Personality` | `bravery: i32, aggression: i32, curiosity: i32, greed: i32, sociability: i32, caution: i32` | 个性特征，每项 0–10，数据里给初始值。效用 AI 打分的根因，见第 5 节。注意：这不是 `Trait`（身体特质，如夜视、利爪），`Personality` 是认知层的组件 |
 | `AIState` | `state: AIStateKind, target: Entity, state_tick: i32` | 当前状态：巡逻 / 工作 / 吃饭 / 睡觉 / 战斗 / 逃跑 / 跟随 |
 | `Perception` | `sight_range: i32` | 视野范围。只做曼哈顿距离 + 视线遮挡简化版 |
+| `Goal` | `goal_id: String, target: Option<Entity>, priority: i32` | 长期目标（如“今天抓到猎物”、“攒够钱买铁剑”）。`DecisionSystem` 在目标变化时写（目标完成、被大事件打断、日程切换），效用 AI 的 `w_goal` 项读它。没有目标时 `goal_id` 为空，`goal` 项按中性 0.5 算 |
+| `InputCommand` | `kind: ActionKind, target: Option<Entity>, x: i32, y: i32, tick: i32` | 玩家输入的一次命令，由输入层写（键盘、DM 翻译出的 `ActionCommand` 都先落到这里）。`DecisionSystem` 只读不写，只合并本 tick 的 `InputCommand`（按 `tick` 字段匹配）；输入层在下一个 tick 开始时清除已消费的 `InputCommand` |
+| `Intent` | `kind: ActionKind, target: Option<Entity>, x: i32, y: i32` | 本 tick 要执行的意图。唯一写者是 `DecisionSystem`：有 `InputCommand` 就按它写，没有就按效用 AI 打分写。`ActionSystem` 在 Act phase 消费后，`DecisionSystem` 在下一个 Decide phase 开始时清除旧的 `Intent` 再写新的 |
 | `Memory` | 见第 2.8 节 | 不是一个大组件，是一组关系 + 事件引用 |
 
 **（7）关系与社会**
@@ -264,7 +269,7 @@ Flecs Prefab 不是继承，是“复制一份再改”：
 ```rust
 // 生物模板：村民
 let villager = world.prefab_named("Villager")
-    .set(Health { hp: 10, max_hp: 10 })
+    .set(Health { hp: 20, max_hp: 20 }) // 健康时 max_hp 约 20，见第 2.6 节器官公式
     .set(Stats { str_: 8, dex: 8, int_: 8, wil: 8, level: 1, xp: 0 })
     .set(Needs { hunger: 50, thirst: 50, fatigue: 20 })
     .add(NPC)
@@ -367,6 +372,8 @@ struct Energy { energy: i32, speed: i32 } // speed 由下面的公式算出来�
 ```
 
 - 玩家行动不立即结算，先进入命令队列。系统按顺序值排序，逐个执行。
+- **所有输入进同一个 Action 队列。** 玩家 `InputCommand` 合并出的 `Intent` 和 NPC 的 `Intent` 没有两条队列，只有一条 Action 队列，按 `order_key` 排序、逐个执行。玩家输入的“优先”只针对该实体自己的效用 AI（覆盖它自己的打分结果），不优先于其他实体：两个玩家同一 tick 抢同一个目标时，和两个 NPC 抢一样，按 `order_key` 定先后。
+- **能量扣费分两步。** `ActionSystem` 校验通过时，先在 Action 队列里记下这笔已承诺能量（`committed`，不写 `Energy` 组件）；`EnergySystem` 在 Resolve phase 一次性扣掉本 tick 所有已承诺能量。校验时看的是 `energy - 已承诺能量`，不是只看 `energy`，所以同一个 tick 里不会透支。
 - **没有单一的敏捷属性。** 动作快慢是多个组件算出来的，分两段，每种动作吃不同的组件，公式和权重全在 `data/rules/action_speed.json` 里，不写死：
   - **第一段，反应快慢（谁先决定）：** 第一版草案值，`reaction = 0.5 * 感知 + 0.3 * 智力 + 0.2 * 意志`（`感知` 来自 `Perception`，`智力` 是 `Stats.int_`，`意志` 是 `Stats.wil`）。想事情靠智慧，反应靠感知和意志，与腿快不快无关。`order_key = reaction + d20（WorldRng）`，同值时按 `entity_id` 排序以保证确定性。
   - **第二段，执行快慢（动作本身要多久）：** 每种动作在数据里写清它吃哪些组件，第一版草案值：移动吃腿的健康 + 身体灵活 − 负重；攻击吃手臂的健康 + 力量 + 武器重量；说话、说服吃合群 + 感知；制作吃手的灵活（`Stats.dex`）+ 对应技能等级；仪式吃意志 + 智力。腿断了移动变慢，手断了攻击变慢，脑子受伤了想事情变慢——快慢跟着身体状态走，不是跟着一个写死的数值走。
@@ -377,23 +384,33 @@ struct Energy { energy: i32, speed: i32 } // speed 由下面的公式算出来�
 
 ### 3.3 一个 tick 的执行顺序（写死，不要靠系统注册顺序碰运气）
 
-Flecs 的 Phase 要显式指定：
+Flecs 内置的 phase 只有一个 `OnUpdate`，不能拿它分多段。**用 8 个自定义 phase（Flecs 支持自定义 phase 实体），按下面顺序注册进 pipeline，每个系统在第 4.2 节的表里写明自己在哪个 phase。** 同一个 phase 里的系统必须互相写独立（写集不重叠），谁先谁后不影响结果；有顺序依赖的系统必须分在不同 phase 或不同子步骤里，不许靠注册顺序。
 
 ```text
-Phase 1  PreUpdate   ：时钟推进、需求衰减（饿 / 渴 / 累 +1）、记忆衰减
-Phase 2  OnUpdate    ：感知更新（谁看得见谁）
-Phase 3  OnUpdate    ：AI 决策（只生成 Intent，不直接改世界）
-Phase 4  OnUpdate    ：命令解析与执行（玩家命令 + AI Intent 统一进 Action 队列）
-Phase 5  OnUpdate    ：战斗结算、移动结算、拾取 / 使用 / 交易
-Phase 6  OnUpdate    ：EventBus 排空（见第 7 节：按优先级再按 id 处理队列，派系与声望更新、事件日志写入都在这里）
-Phase 7  PostUpdate  ：死亡清理、尸体处理、地面效果衰减
-Phase 8  PostFrame   ：快照生成、推送给客户端和 AI DM
+Phase 1  Clock      ：时钟推进、能量累积（EnergySystem）、需求衰减（NeedsSystem：饿 / 渴 / 累 +1）、地面效果 tick（TileEffectSystem：ttl 减 1、蔓延、发伤害事件）
+Phase 2  Sense      ：感知更新（PerceptionSystem：谁看得见谁）
+Phase 3  Decide     ：AI 决策（DecisionSystem：合并 InputCommand 或效用 AI 打分，只写 Intent，不直接改世界）
+Phase 4  Act        ：分 4 个子步骤，见下（ActionSystem 校验 → 否决 / 修改 → 执行系统结算 → After 事件入队）
+Phase 5  Resolve    ：结算后连锁（DeathSystem：标 Dead；EnergySystem：扣已承诺能量）
+Phase 6  EventDrain ：EventBus 排空第 3 档反应（MemorySystem、FactionSystem、EventLogSystem：按优先级再按 id 处理队列，见第 7 节）
+Phase 7  Maintain   ：死亡清理（DeathSystem：尸体 100 tick 后删实体）、记忆衰减（MemorySystem）、不变量检查（见第 11.3 节）
+Phase 8  Present    ：快照生成（SnapshotSystem）、推送给客户端和 AI DM
+```
+
+**Act phase 的 4 个子步骤（固定顺序，写死在 pipeline 定义里，不是注册顺序）：**
+
+```text
+Act-1 校验：ActionSystem 按 order_key 逐个校验 Action 队列里的 Intent：重新查 get_available_actions（见第 5 节）确认该操作现在还可用，查能量（energy - 已承诺能量）、距离、目标存在、工具有无；校验失败返回原因、记一条事件，不执行。
+Act-2 否决 / 修改：对每个校验通过的动作发 Before 事件（BeforeAttack / BeforeMove / BeforeDamage……），EventProcessSystem 只排空第 1 档（否决：护甲、免疫、闪避，可置 cancelled）和第 2 档（修改：特质、技能、环境加成，改 damage 等字段）；被取消的动作不结算，记一条失败事件。
+Act-3 结算：执行系统（CombatSystem / MovementSystem / InventorySystem / TradeSystem / CraftSystem / EnvironmentSystem）按 order_key 顺序结算；伤害、治疗、毒伤、饥饿掉血、地面效果伤害都在这里由 CombatSystem 一次算完，不结算两次；结算完发 After 事件（AfterAttack / AfterDamage / AfterMove……），只入队，不在这里做反应。
+Act-4 入队：After 事件和结算中产生的新事件进 EventBus 队列，等 Phase 6 的 EventDrain 再做第 3 档反应。
 ```
 
 关键规则：
 
-- Phase 3 的 AI 只写 `Intent` 组件（`Intent { kind: ActionKind, target: Entity, x: i32, y: i32 }`），不直接改 `Position` / `Health`。Phase 4 再统一执行，这样回放和调试才有意义。
+- Decide phase 的 AI 只写 `Intent` 组件，不直接改 `Position` / `Health`。Act phase 再统一执行，这样回放和调试才有意义。
 - 同一个 tick 内，两个实体想进同一个格子，按 `order_key` 高者先行（见第 3.2 节），低者原地等待并记一条“被挡住”事件，不许穿人。
+- **否决必须在结算前。** `BeforeX` 的否决和修改只在 Act-2 生效；Act-3 结算完再想否决已经晚了。任何系统都不许在 EventDrain 里改已经结算完的伤害数字——第 3 档反应只读不改。
 
 ### 3.4 一直跑：玩家在与不在都全量模拟，不降级
 
@@ -415,6 +432,7 @@ Phase 8  PostFrame   ：快照生成、推送给客户端和 AI DM
 - **（a）定义规则**：同上，四要素缺一不可；触发条件只有三种，不要把 system、observer、pipeline 三种东西放进同一张表而不注明。
 - **（b）单写者原则**：一个组件只能由一个系统写，其他系统只能读。违反这条，两个系统同时改一个组件，顺序一变结果就变，回放和调试都没法做。单写者表见第 4.3 节，表上没有的组件不许写。
 - **（c）6 类系统家族（按一个 tick 里的因果链，正交）**：**输入与时钟**（只收命令、推进时间，不改世界状态）；**感知**（只更新“知道什么”）；**决策**（只产 `Intent`，绝不直接改世界）；**执行**（唯一能改核心状态的一类，只认 `Intent`）；**结算与世界演化**（执行后的连锁反应）；**维护与呈现**（日志、存档、快照，不参与模拟）。每个系统只能进一类。
+- **（d）一个系统最多两个步骤。** 少数系统需要在一个 tick 里做两件时间上分开的事（如 `EnergySystem` 在 Clock 累积能量、在 Resolve 扣已承诺能量），允许它在两个 phase 各有一个步骤，但两个步骤必须在第 4.2 节的表里分别写明。单写者规则按系统算，不按步骤算；不许出现第三个步骤，不许用“顺便”在别的 phase 里写组件。
 
 系统数不随组件数同比例增长：组件全量约 300–350 个，系统 MVP 约 18–22 个、v1 约 35–40 个。多个组件共享一个数据驱动的系统（例如所有状态效果共用一个 `StatusSystem`，所有特质共用一个 `TraitSystem`，靠数据分发，不用每种特质一个系统）。
 
@@ -424,54 +442,55 @@ P0 是 MVP 必须有，P1 是基座完整后下一批，P2 是明确排后。
 
 **输入与时钟**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 1 | `ClockSystem` | `WorldClock` → tick / day / hour | 只做时间，不做别的 |
-| 2 | `EnergySystem` | 身体状态 + 已执行动作 → `Energy` | 每回合按身体状态重算 `speed` 并加能量；执行时按已执行动作的 cost 扣费。`Energy` 的唯一写者 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 1 | `ClockSystem` | Clock | `WorldClock` → tick / day / hour | 只做时间，不做别的 |
+| 2 | `EnergySystem` | Clock（累积）+ Resolve（扣费） | 身体状态 + 已执行动作 → `Energy` | Clock 步：每 tick 按身体状态重算 `speed` 并加能量；Resolve 步：扣掉本 tick Action 队列里已承诺的能量。`Energy` 的唯一写者 |
 
 **感知**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 3 | `PerceptionSystem` | `Position` + `Perception` → `Visible` 关系 | 只做距离 + 简单遮挡，不做真实视线 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 3 | `PerceptionSystem` | Sense | `Position` + `Perception` → `Visible` 关系 | 只做距离 + 简单遮挡，不做真实视线 |
 
 **决策（只产 Intent，不改世界）**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 4 | `DecisionSystem` | `Schedule` + `WorldClock` + `AIState` + `Needs` + `Memories` + `Reputations` + `Personality` → `Intent` | 效用 AI 打分，见第 5 节。白天巡逻 / 工作，晚上回家；被攻击过 → 逃跑或反击；声望低 → 拒绝交易 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 4 | `DecisionSystem` | Decide | `InputCommand` + `Schedule` + `WorldClock` + `AIState` + `Needs` + `Memories` + `Reputations` + `Personality` + `Goal` → `Intent`（+ `Goal`，长期目标变化时） | 有本 tick 的 `InputCommand` 就按它写 `Intent`，没有就按效用 AI 打分写（见第 5 节）。`Intent` 与 `Goal` 的唯一写者；不直接写 `Position` / `Health` 等核心组件 |
 
 **执行（唯一能改核心状态，只认 Intent）**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 5 | `ActionSystem` | `Intent` / 玩家命令 → 路由到各执行系统 | **只做分发与校验，不写任何核心组件。** 校验能量、距离、目标存在、工具有无；校验失败返回原因，不执行；校验通过按 `Intent.kind` 路由给下面的执行系统 |
-| 6 | `CombatSystem` | 攻击 Intent → 检定 → `Health` / `BodyPart` | 检定公式见第 4.4 节。`Health` 的唯一写者 |
-| 7 | `MovementSystem` | 移动 Intent → `Position` | 碰撞、地形、负重都在这里判。`Position` 的唯一写者 |
-| 8 | `InventorySystem` | 拾取 / 放下 / 给出 / 交易 / 制作 Intent → `Inventory` | 物品的移动只走这里。`Inventory` 的唯一写者 |
-| 9 | `TradeSystem` | 交易 Intent → 价格 | 只算价格（基础价 × 声望折扣 × 稀缺系数，不做供需），不移动物品；物品移动由 `InventorySystem` 做 |
-| 10 | `CraftSystem` | 制作 Intent → 配方结算 | 配方表驱动：2 材料 + 工具 → 1 物品；材料消耗与产物由 `InventorySystem` 做 |
-| 11 | `TraitSystem` | 特质生效：被动加成 + 主动技能，效果来自数据 | 特质只改事件 payload（见第 7 节），不直接写核心组件 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 5 | `ActionSystem` | Act-1 | `Intent` → 路由到各执行系统 | **只做分发与校验，不写任何核心组件。** 校验能量（`energy - 已承诺能量`）、距离、目标存在、工具有无，执行时重新查 `get_available_actions`；校验失败返回原因，不执行；校验通过按 `Intent.kind` 路由给下面的执行系统，并在队列里记下已承诺能量 |
+| 6 | `CombatSystem` | Act-3 | 攻击 Intent / 伤害事件 → 检定 → `Health` / `BodyPart` | 检定公式见第 4.4 节。`Health` 与 `BodyPart.hp` 的唯一写者；饥饿、毒伤、地面效果伤害也在这里一次结算 |
+| 7 | `MovementSystem` | Act-3 | 移动 Intent / 重生事件 → `Position` / `Scene` | 碰撞、地形、负重都在这里判。`Position` 与 `Scene` 的唯一写者；跨地图、跨场景、被推开、玩家重生（见第 6.1 节）都走这里 |
+| 8 | `InventorySystem` | Act-3 | 拾取 / 放下 / 给出 / 交易 / 制作 Intent → `Inventory` | 物品的移动只走这里。`Inventory` 的唯一写者；制作的材料消耗与产物也在做 |
+| 9 | `TradeSystem` | Act-3 | 交易 Intent → 价格（写进事件 payload） | 只算价格（基础价 × 声望折扣 × 稀缺系数，不做供需），**价格不存组件，没有 `Price` 组件**；物品移动由 `InventorySystem` 做 |
+| 10 | `CraftSystem` | Act-3 | 制作 Intent → 配方校验 + 事件 | 只校验配方（配方表驱动：2 材料 + 工具 → 1 物品）并发事件；材料消耗与产物由 `InventorySystem` 做 |
+| 11 | `TraitSystem` | Act-2 | Before 事件 → 改事件 payload | 特质生效：被动加成 + 主动技能，效果来自数据。特质只改事件 payload（见第 7 节），不直接写核心组件；否决 / 修改只在 Act-2 生效 |
 
 **结算与世界演化**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 12 | `NeedsSystem` | `Needs` → hunger / thirst / fatigue +1 | 阈值到 80 触发 AI 需求；到 100 发伤害事件，由 `CombatSystem` 结算（`NeedsSystem` 不直接写 `Health`） |
-| 13 | `DeathSystem` | `Health.hp <= 0` → `Dead` 标签 + 掉落 | 死亡不删实体，先变尸体。只写 `Dead` 标签，不写 `Health` |
-| 14 | `FactionSystem` | 声望事件 → `Reputations` / 派系态度 | `Reputations` 的唯一写者。声望变化 → 派系态度 → NPC 行为阈值 |
-| 15 | `TileEffectSystem` | 地面水 / 火 / 毒雾 → 伤害事件与持续时间 | 只发事件，不直接写 `Health`；伤害由 `CombatSystem` 结算 |
-| 16 | `EnvironmentSystem` | 环境 Intent + 交互定律 → `Plot` 组件 | 挖、放、种、烧、填与邻格连锁（水往低处流、火蔓延、塌方）都在这里算。`Plot` 组件的唯一写者 |
-| 17 | `MemorySystem` | 事件反应 → `Memories` | 记忆只由事件反应写入。`Memories` 的唯一写者 |
-| 18 | `EventProcessSystem` | `EventBus` 队列 → 按优先级再按 id 处理（见第 7 节） | Phase 6 排空队列。它本身不写世界状态，只把事件路由给 owning 系统；派系与声望更新、事件日志写入都在这里触发 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 12 | `NeedsSystem` | Clock | `Needs` → hunger / thirst / fatigue +1 | 阈值到 80 触发 AI 需求；到 100 发伤害事件，由 `CombatSystem` 在 Act-3 结算（`NeedsSystem` 不直接写 `Health`） |
+| 13 | `DeathSystem` | Resolve（标 Dead）+ Maintain（删尸体） | `Health.hp <= 0` → `Dead` 标签 + 掉落；100 tick 后删实体 | 死亡不删实体，先变尸体。`Dead` 的唯一写者，也是尸体删除（结构变化）的唯一所有者；玩家重生计时到 24 tick 时发重生事件，由 `MovementSystem` 执行 |
+| 14 | `FactionSystem` | EventDrain | 声望事件 → `Reputations` / 派系态度 | `Reputations` 的唯一写者。声望变化 → 派系态度 → NPC 行为阈值；只在 EventDrain 做第 3 档反应 |
+| 15 | `TileEffectSystem` | Clock | 地面水 / 火 / 毒雾 → `TileEffect` + 伤害事件 | `TileEffect` 的唯一写者：ttl 减 1、火向可燃邻格蔓延、水灭火；伤害只发事件，由 `CombatSystem` 在 Act-3 结算，不直接写 `Health` |
+| 16 | `EnvironmentSystem` | Clock（天气步）+ Act-3（编辑步） | 天气 + 环境 Intent + 交互定律 → `Plot` 组件 | Clock 步：雨涨 `Moisture`、日晒涨 `Temperature`、肥力变化（没有单独的 WeatherSystem）；Act-3 步：挖、放、种、烧、填与邻格连锁（水往低处流是简化版：一格水只向最低的相邻空格扩散，不做完整液体模拟，见第 1.2 节；火蔓延、塌方）都在这里算。`Soil` / `Moisture` / `Temperature` / `Vegetation` / `MicrobeDensity` 的唯一写者 |
+| 17 | `MemorySystem` | EventDrain（反应写入）+ Maintain（衰减） | 事件反应 → `Memories` | 记忆只由事件反应写入。`Memories` 的唯一写者；Maintain 步做 `strength` 衰减与遗忘 |
+| 18 | `EventProcessSystem` | Act-2（第 1、2 档）+ EventDrain（第 3 档） | `EventBus` 队列 → 按优先级再按 id 处理（见第 7 节） | 不是每 tick 跑一遍的普通系统，是 EventBus 的排空函数，在两个固定调用点运行：Act-2 只排第 1、2 档（否决 / 修改），EventDrain 排第 3 档（反应）及队列里其余事件。它本身不写世界状态，只把事件路由给 owning 系统；派系与声望更新、事件日志写入都在 EventDrain 触发 |
 
 **维护与呈现（不参与模拟）**
 
-| 顺序 | 系统 | 输入 → 输出 | 备注 |
-|---|---|---|---|
-| 19 | `EventLogSystem` | 所有系统 → `EventLog` | 只追加，不修改；事件来自 EventBus，同一个 id |
-| 20 | `SaveSystem` | 世界 → 存档文件 | 全量存档，见第 9.4 节 |
-| 21 | `HistorySystem` | 开局生成历史 → `History` 单例 | 只在开局跑一次，生成地点、人物、仇恨链 |
+| 顺序 | 系统 | 阶段 | 输入 → 输出 | 备注 |
+|---|---|---|---|---|
+| 19 | `EventLogSystem` | EventDrain | 所有系统 → `EventLog` | 只追加，不修改；事件来自 EventBus，同一个 id |
+| 20 | `SaveSystem` | 按需（不在 tick 里） | 世界 → 存档文件 | 全量存档，见第 9.4 节；只在玩家 / 测试显式保存时跑，不占 tick |
+| 21 | `HistorySystem` | 开局一次（不在 tick 里） | 开局生成历史 → `History` 单例 | 只在开局跑一次，生成地点、人物、仇恨链 |
+| 22 | `SnapshotSystem` | Present | 世界 → 快照 JSON | 每 tick 生成一份快照，推送给客户端和 AI DM；只读世界，不写模拟状态 |
 
 P2（明确排后）：完整液体流动、温度、腐蚀、爆炸链；跨地图旅行之外的世界地图生成、地下多层；复杂经济、领地、建造；多线程并行模拟。v1 单线程先跑通，Flecs 的多线程是优化，不是基座。
 
@@ -479,16 +498,21 @@ P2（明确排后）：完整液体流动、温度、腐蚀、爆炸链；跨地
 
 | 组件 | 唯一写者 | 其他系统 |
 |---|---|---|
-| `Health` | `CombatSystem` | 伤害、治疗、毒伤、饥饿掉血，全部发事件走 `CombatSystem` 结算 |
-| `Position` | `MovementSystem` | 移动、跨地图、被推开，都走 `MovementSystem` |
+| `Health` | `CombatSystem` | 伤害、治疗、毒伤、饥饿掉血，全部发事件走 `CombatSystem` 在 Act-3 结算 |
+| `Position` | `MovementSystem` | 移动、跨地图、跨场景、被推开、玩家重生，都走 `MovementSystem` |
+| `Scene` | `MovementSystem` | 跨场景边界时改写；场景边界是地图数据里的矩形（见第 2.2 节） |
 | `Inventory` | `InventorySystem` | 拾取、放下、给出、交易、制作消耗与产物，都走 `InventorySystem` |
-| `Reputations` | `FactionSystem` | 声望只通过事件变化，由 `FactionSystem` 应用 |
-| `Intent` | `DecisionSystem`（NPC 与下线玩家）；在线玩家由输入层直接写 | 决策只产 `Intent`，执行只认 `Intent` |
-| `Memories` | `MemorySystem`（反应类系统，第 7 节第 3 档） | 记忆只由事件反应写入 |
-| `Energy` | `EnergySystem` | 每回合按身体状态重算 `speed` 并加能量，执行时按已执行的动作扣费 |
+| `Reputations` | `FactionSystem` | 声望只通过事件变化，由 `FactionSystem` 在 EventDrain 应用 |
+| `Intent` | `DecisionSystem` | 决策只产 `Intent`，执行只认 `Intent`；`DecisionSystem` 在下一个 Decide phase 开始时清除旧的 `Intent` 再写新的 |
+| `InputCommand` | 输入层（键盘 / DM） | 只写不读别的：`DecisionSystem` 只读 `InputCommand`，只合并本 tick 的（按 `tick` 字段匹配）；输入层在下一个 tick 开始时清除已消费的 `InputCommand` |
+| `Goal` | `DecisionSystem` | 长期目标变化时写（目标完成、被大事件打断、日程切换）；效用 AI 的 `w_goal` 项读它 |
+| `Memories` | `MemorySystem`（反应类系统，第 7 节第 3 档） | 记忆只由事件反应写入；衰减与遗忘也在 `MemorySystem` 的 Maintain 步里做 |
+| `Energy` | `EnergySystem` | 每 tick 按身体状态重算 `speed` 并加能量（Clock 步），扣已承诺能量（Resolve 步） |
 | `Needs` | `NeedsSystem` | 饥饿 / 口渴 / 疲劳只由它递增递减 |
 | `BodyPart.hp` | `CombatSystem` | 肢体 / 器官伤害只由战斗结算写；`DeathSystem` 只写 `Dead` 标签 |
-| `Plot` 组件（`Soil` / `Moisture` / `Temperature` / `Vegetation`） | `EnvironmentSystem` | 地块变化只由环境系统写；挖、放、种、烧、填的 Intent 路由给它 |
+| `Dead` | `DeathSystem` | 死亡标记与尸体删除（结构变化）的唯一所有者；100 tick 后删实体 |
+| `TileEffect` | `TileEffectSystem` | 地面水 / 火 / 毒雾的 ttl、强度、蔓延只由它写；伤害只发事件，由 `CombatSystem` 结算 |
+| `Plot` 组件（`Soil` / `Moisture` / `Temperature` / `Vegetation` / `MicrobeDensity`） | `EnvironmentSystem` | 地块变化只由环境系统写：天气步（Clock）与挖、放、种、烧、填的 Intent（Act-3） |
 
 `ActionSystem` 不在上表里：它不写任何核心组件。任何一个系统想写表上没有列出的组件，先补表，再写代码。
 
@@ -508,7 +532,7 @@ P2（明确排后）：完整液体流动、温度、腐蚀、爆炸链；跨地
 
 ## 5. 效用 AI
 
-决策系统（Phase 3）不对每个行动写 `if`，而是对每个候选行动打分，选分最高的产 `Intent`。分数的每一项都先归一化到 0..1，再按权重加权：
+决策系统（Decide phase）不对每个行动写 `if`，而是对每个候选行动打分，选分最高的产 `Intent`。分数的每一项都先归一化到 0..1，再按权重加权：
 
 ```text
 score(action) = w_need * need(action) + w_memory * memory(action)
@@ -517,6 +541,41 @@ score(action) = w_need * need(action) + w_memory * memory(action)
 ```
 
 第一版草案值（跑模拟时再调）：`w_need = 0.30，w_memory = 0.15，w_reputation = 0.15，w_goal = 0.15，w_schedule = 0.10，w_personality = 0.15`，六项之和为 1。每一项的意思：`need` 是这个行动能缓解多急的需求；`memory` 是记忆在推还是在拉；`reputation` 是这个行动对声望的影响；`goal` 是离实体当前目标有多近；`schedule` 是不是该干这件事的时间；`personality` 是这个行动和实体个性特征的匹配度——这是根因项，见下。
+
+### 5.0 候选动作从哪来：一个函数，两处共用
+
+候选列表不是凭空列出来的，是模拟层的一个函数算出来的：
+
+```rust
+fn get_available_actions(entity: Entity, state: &WorldState) -> Vec<CandidateAction>
+```
+
+同一个函数，两个调用方：`DecisionSystem` 在 Decide phase 用它枚举 NPC（与下线玩家）的候选动作再打分；DM 查询 `get_available_actions(player_id)`（见第 8.2 节）直接返回同一份列表。两处共用一个函数，DM 能选的和 NPC 能想到的就是同一张表，不存在“DM 能选、NPC 想不到”或反过来的动作。
+
+枚举规则（按实体当前状态过滤，不合法的根本不进候选列表）：
+
+- **位置：** 相邻 4 格可走 → `Move`；当前位置是场景 / 地图边界出口 → 跨场景、跨地图的 `Move`。
+- **视野内实体：** 视野内有可攻击目标且在武器射程内 → `Attack`；视野内有可对话的 NPC → `Talk`；视野内有商人且声望未到敌对 → `Trade`。
+- **背包：** 有可吃的食物 → `UseItem`（吃）；有可喝的水 → `UseItem`（喝）；有可给出的物品 → `GiveItem`；有可放下的物品 → `Drop`。
+- **附近地块：** 脚下或相邻地块可挖 / 可放 / 可种 / 可烧 / 可填，且有对应工具（或徒手可做）→ `Dig` / `Place` / `Plant` / `Burn` / `Fill`。
+- **技能：** 实体挂的技能标签匹配当前交互（如手里有锤子和金属 → `Craft`；面前有锁且有开锁器 → `PickLock`）。
+- **需求与日程：** 需求到阈值（见第 6.1 节）且附近有解法 → 吃 / 喝 / 睡的候选；到了日程时间 → 去工作地点 / 回家的 `Move` 候选。
+- **能量：** 候选动作的 cost 大于 `energy - 已承诺能量` 的，进列表但打分时直接记 0 分（不是不列出来，是列出来但选不上，这样调试时能看到“想做但能量不够”）。
+
+### 5.0.1 每项怎么归一化到 0..1
+
+归一化规则写在 `data/ai/utility_weights.json` 的 `normalizations` 里，第一版草案值如下表：
+
+| 项 | 归一化规则（第一版草案值） |
+|---|---|
+| `need` | 该行动缓解的最急需求值 / 100。如饿 90 时吃东西得 0.9，饿 10 时吃东西得 0.1；与需求无关的行动得 0 |
+| `memory` | `0.5 + 记忆推力`：记忆推该行动（如被对方帮助过 → 帮忙）按 `strength / 200` 加，记忆拉该行动（如被对方攻击过 → 靠近）按 `strength / 200` 减，夹取到 0..1；无相关记忆得 0.5 |
+| `reputation` | `0.5 + 预期声望变化 / 40`，夹取到 0..1。如帮村民 +10 得 0.75，攻击村民 -20 得 0.0；与声望无关得 0.5 |
+| `goal` | 推进当前 `Goal` 得 1，与目标无关得 0.5，与目标冲突得 0；没有目标时所有行动得 0.5 |
+| `schedule` | 现在正是该行动的日程时间得 1，无关得 0.5，错过时间得 0 |
+| `personality` | 该行动的个性亲和度：按第 5.1 节的亲和公式算出原始值，再按该行动亲和度的取值范围线性归一化到 0..1（范围写在数据里） |
+
+打分平局时按 `entity_id` + 行动 id 排序取第一个，不掷骰子——同一颗种子、同一状态，打分结果必须一样（见第 11.3 节确定性）。
 
 ### 5.1 行为是结果，不是原因，落脚点是组件
 
@@ -538,8 +597,9 @@ score(action) = w_need * need(action) + w_memory * memory(action)
 
 一个人能和环境做任何交互，怎么可能只用几个固定技能固定下来？所以技能不是枚举，是数据文件：`data/skills/<id>.json` 有多少种，世界里就有多少种，谁都可以加——加一个文件就是加一种技能，不用改代码。每个技能定义写清：名字、标签（如 `hammer + metal`、`water`、`lock + pick`）、吃哪些属性和身体部位、升级曲线。`Skill` 组件是 `{skill_id, level, xp}`，一个实体可挂多个。
 
-- **技能靠交互发现和长出来：** 第一次做一件事，先按标签找最接近的已有技能；找不到，就以这次交互为名新建一个技能条目，等级 0，XP 从这次开始攒。打铁多了长出打铁，游水多了长出游泳，开锁多了长出开锁——技能是交互长出来的，不是开局发下来的。
-- **种子示例（不是上限）：** 近战、远程、潜行、开锁、制作、交易、医疗、生存、说服、察觉、运动、仪式。生物文件里原有的职业味技能 id（打铁、守卫、做饭、行医、种田、打猎、追踪等）按标签映射到注册表。
+- **技能靠交互发现和长出来：** 第一次做一件事，先按标签找最接近的已有技能（标签重叠度最高，且高于数据里写的阈值）；找到了，就用那个技能检定、涨那个技能的 XP。**找不到时，运行时绝不新建全局技能文件。** 只在该实体身上新建一个 `Skill` 条目，`skill_id` 是临时 id，格式为 `discovered:<tag1>+<tag2>`（如 `discovered:hammer+metal`），等级 0，XP 从这次开始攒；同时记一条 `OnSkillDiscovered` 事件，写明是哪个实体、哪次交互、哪几个标签。打铁多了长出打铁，游水多了长出游泳，开锁多了长出开锁——技能是交互长出来的，不是开局发下来的，但长出来的只是实体身上的临时条目。
+- **临时技能转正要手动走数据：** 想把 `discovered:hammer+metal` 变成注册表里的正式技能，人手动加一个 `data/skills/<id>.json`，跑 `ewil-data validate` 通过后，再由一次数据迁移把已有实体身上的临时 id 映射到正式 id。运行时不写 `data/`，DM 不写 `data/`，模拟不写 `data/`——`data/` 只由人改。
+- **种子示例（不是上限）：** 近战、远程、潜行、开锁、制作、交易、医疗、生存、说服、察觉、运动、仪式。生物文件里原有的职业味技能 id（打铁、守卫、做饭、行医、种田、打猎、追踪等）现在就是注册表里的正式条目，见 `data/skills/`。
 - **升级（第一版草案值）：** 技能靠用涨：检定成功 +10 XP，失败 +3 XP；升一级要 `100 * 当前等级` XP，升一级技能 +1。没有全局人物等级，只有技能各自涨——铁匠天天打铁，制作涨得快，潜行永远是 0。
 
 ### 6.1 其他规则细节（第一版草案值，全是数据，跑模拟时再调）
@@ -547,7 +607,7 @@ score(action) = w_need * need(action) + w_memory * memory(action)
 以下全部写在 `data/rules/` 里（`leveling.json`、`death.json`、`needs.json`、`action_speed.json`），跑模拟时按第 11 节的 soak 和场景测试结果调，不许在代码里写死。
 
 - **需求：** 饿 / 渴 / 累每 tick +1（0–100），到 80 效用 AI 强烈倾向去解决（`need` 项接近 1），到 100 开始掉血（每 tick -1，发伤害事件由 `CombatSystem` 结算）。吃饭 -40 饥饿，喝水 -40 口渴，睡一晚（48 tick）疲劳清零。
-- **死亡：** `hp <= 0` 变尸体，尸体保留 100 tick 后清理（见第 11 节有界增长）。NPC 死亡是永久的，记忆和声望里留一条“死了”。玩家死亡不是永久死亡（第一版）：24 tick 后在村里旅店醒来，掉 10% 携带货币，记忆和声望保留——死亡有代价，但不删档。永久死亡是后续可讨论的选项，不是默认。
+- **死亡：** `hp <= 0` 变尸体，尸体保留 100 tick 后由 `DeathSystem` 删除实体（见第 4.2 节）。NPC 死亡是永久的，记忆和声望里留一条“死了”。玩家死亡不是永久死亡（第一版）：`DeathSystem` 计时 24 tick 后发重生事件，由 `MovementSystem` 执行——玩家在村里旅店醒来，掉 10% 携带货币，记忆和声望保留——死亡有代价，但不删档。永久死亡是后续可讨论的选项，不是默认。
 
 ---
 
@@ -596,11 +656,11 @@ struct EventBus {
 }
 ```
 
-发事件 = 入队，处理事件 = 在固定 phase（Phase 6，见第 3.3 节）里排空队列。处理时新产生的事件进下一轮队列，不直接处理，避免重入和无限递归。
+发事件 = 入队，处理事件 = 在两个固定调用点排空队列（见第 3.3 节）：**Act-2 只排第 1 档（否决）和第 2 档（修改）**，且只排当前动作的 Before 事件；**EventDrain phase 排第 3 档（反应）及队列里其余事件**。处理时新产生的事件进下一轮队列，不直接处理，避免重入和无限递归。第 1、2 档在 Act-2 排完才进 Act-3 结算，第 3 档的反应永远在结算之后——否决和修改在结算前，反应在结算后，两边不许串。
 
 **Before / After 对。** 每个可干预的行为都是一对事件：`BeforeX` 可否决、可改 payload，`AfterX` 只做反应。`BeforeAttack` 被取消就不结算；结算后发 `AfterDamage`，再由它触发记忆、声望、死亡检查。不要只有一个 `Attack` 事件，否则否决和反应混在一起。
 
-**3 档优先级。** 第 1 档是否决类（护甲、免疫、闪避），能把 `cancelled` 置 true；第 2 档是修改类（特质、技能、环境加成），改 `damage` 等字段；第 3 档是反应类（记忆、声望、日志、死亡检查），只读不改。同一档内按 `id` 排序；队列按 `priority` 再按 `id` 排序。同一段日志回放必须得到同一结果，种子存在存档里（见第 3.1 节）。
+**3 档优先级。** 第 1 档是否决类（护甲、免疫、闪避），能把 `cancelled` 置 true，在 Act-2 排；第 2 档是修改类（特质、技能、环境加成），改 `damage` 等字段，也在 Act-2 排；第 3 档是反应类（记忆、声望、日志、死亡检查），只读不改，在 EventDrain 排。同一档内按 `id` 排序；队列按 `priority` 再按 `id` 排序。同一段日志回放必须得到同一结果，种子存在存档里（见第 3.1 节）。
 
 **上限与合并。** 每 tick 最多处理 **1000** 个事件，超了非关键事件丢弃并记一条日志，关键事件延到下一 tick；递归深度上限 **8**，超了截断并报警。同类同目标的事件在同一 tick 内可合并结算（例如同一人同 tick 的三次毒伤合并成一次结算，日志里仍记三次）。
 
@@ -615,10 +675,10 @@ struct EventBus {
 | 类 | 事件（Before / After 对） |
 |---|---|
 | （1）标识与呈现 | `OnDiscover`（发现实体 / 物品） |
-| （2）空间 | `BeforeMove` / `AfterMove`、`OnEnterMap` / `OnLeaveMap` |
+| （2）空间 | `BeforeMove` / `AfterMove`、`OnEnterMap` / `OnLeaveMap`、`OnEnterScene` / `OnLeaveScene` |
 | （3）物质与物理 | `BeforeUse` / `AfterUse`（使用物品）、`OnBreak`（物品损坏）、`OnIgnite` / `OnExtinguish`（着火 / 灭火） |
 | （4）生命与身体 | `BeforeDamage` / `AfterDamage`、`BeforeDeath` / `OnDeath`、`OnLimbSevered`（断肢） |
-| （5）能力 | `BeforeAttack` / `AfterAttack`、`OnCheck`（检定完成）、`OnSkillUse`、`OnTraitTrigger`（特质触发） |
+| （5）能力 | `BeforeAttack` / `AfterAttack`、`OnCheck`（检定完成）、`OnSkillUse`、`OnSkillDiscovered`（发现临时技能，见第 6 节）、`OnTraitTrigger`（特质触发） |
 | （6）认知与决策 | `OnPerceive`（看见新实体）、`OnMemoryAdd` / `OnMemoryForget`、`OnIntent`（决策产生意图） |
 | （7）关系与社会 | `OnTrade`、`BeforeTrade`（声望不够可否决）、`OnReputationChange`、`OnConversation`（对话开始 / 结束） |
 | （8）世界与环境 | `OnTileEffect`（地面效果触发）、`OnPlotChange`（地块被编辑） |
@@ -629,18 +689,20 @@ struct EventBus {
 
 **AI DM 只做三件事，而且只做这三件事：解析玩家意图 → 映射为游戏操作 → 描述游戏状态和玩家状态。**
 
-### 8.0 DM 等价于输入设备
-
-**DM 和键盘鼠标没有本质区别，都是“玩家意图的来源”，不是特权通道。** 键盘是按键，DM 是把一句话解析成操作。检验标准只有一条：DM 发出的任何一个操作，都必须能由同一个玩家、在同一状态下用键盘鼠标复现出来。复现不出来的，就是绕过模拟。
-
-- “当前实体所有能有的操作”不是 DM 定的，是模拟层根据状态算出来的：位置、背包、能量、技能、附近有什么、目标在不在。DM 只能在模拟层枚举出的可用操作里选，不能发明新操作，也不能给操作加模拟层没给的参数。
-- 选出来的操作走同一条路：`Intent` → `ActionSystem` 校验 → 执行系统 → EventBus，同一个 tick、同一个单写者（见第 4.3 节）、同一份事件日志。DM 不能直接写组件，不能跳过校验，不能凭空变出东西、瞬移、改血量。
-- 可用性要在执行时重新校验一次：DM 解析和执行之间状态可能已经变了（比如目标被人先拿走了），执行时以当时的状态为准，校验失败就退回，不许按旧快照硬执行。
+**接入分期：前期不用 DM。** 原型和 MVP 阶段玩家直接用键盘鼠标操作，像 Qud 一样：键盘鼠标写 `InputCommand`，世界照常跑，DM 不在场，模拟层、校验、事件日志一个不少。DM 是基座完成后的上层阶段再接入的：接进来时只多一个输入来源（语音转文字 → DM 翻译成 `ActionCommand` → 同一个 `InputCommand`），模拟层不用改——因为 DM 和键盘鼠标走的是同一条输入路（见 §8.0）。上层应用（语音链路、语音房间、客户端）也都在这个阶段再做，基座先只证明世界自己能活。
 
 - 输入是两样东西：玩家的一句话（文字；上层负责把语音转成文字，语音链路是上层的事）+ 一份固定字段的 JSON 快照（世界状态、玩家状态、最近事件）。输出也是两样东西：一个或多个 `ActionCommand` + 一段讲述文本。
 - DM 不模拟世界，不算规则，不做长期规划，不编造不存在的实体、物品和数值。骰子、命中、伤害、声望变化、NPC 决策（`Intent`）都在模拟层（Rust）里算；DM 只翻译和讲述，翻译错了模拟层会校验失败并退回。
 - 正因为任务被收敛成“意图解析 + 槽位填充 + 基于快照的讲述”，这件事很简单，小模型也能实现。不需要大模型做世界推理、长程规划或开放式创作；模型越大，越容易在快照之外编东西，反而是坏事。选型的标准是：在固定 schema 下把玩家的话稳定地映射成 `ActionCommand`、并且只讲快照里有的东西，越小越便宜越好。
 - DM 的讲述必须以快照为据：场景里有什么、NPC 在干什么、刚才发生了什么，都来自 `get_snapshot` / `query_events` 返回的字段，不许凭空补充。玩家问快照里没有的东西，DM 说“不知道 / 看不见”，不许编。
+
+### 8.0 DM 等价于输入设备
+
+**DM 和键盘鼠标没有本质区别，都是“玩家意图的来源”，不是特权通道。** 键盘是按键，DM 是把一句话解析成操作。检验标准只有一条：DM 发出的任何一个操作，都必须能由同一个玩家、在同一状态下用键盘鼠标复现出来。复现不出来的，就是绕过模拟。
+
+- “当前实体所有能有的操作”不是 DM 定的，是模拟层根据状态算出来的：位置、背包、能量、技能、附近有什么、目标在不在。DM 只能在模拟层枚举出的可用操作里选，不能发明新操作，也不能给操作加模拟层没给的参数。枚举函数就是第 5.0 节的 `get_available_actions`，DM 查的和 `DecisionSystem` 用的是同一个函数。
+- 选出来的操作走同一条路：`ActionCommand` → 输入层写 `InputCommand` → `DecisionSystem` 合并为 `Intent` → `ActionSystem` 校验 → 执行系统 → EventBus，同一个 tick、同一个单写者（见第 4.3 节）、同一份事件日志。DM 不能直接写组件，不能跳过校验，不能凭空变出东西、瞬移、改血量。
+- 可用性要在执行时重新校验一次：DM 解析和执行之间状态可能已经变了（比如目标被人先拿走了），执行时以当时的状态为准，校验失败就退回，不许按旧快照硬执行。
 
 ### 8.1 接口边界（一句话）
 
@@ -701,8 +763,8 @@ struct ActionCommand {
 };
 ```
 
-- 流程：玩家说话 → DM 生成 1 个或多个 `ActionCommand` → 模拟层校验（距离够吗？有这个物品吗？能量够吗？）→ 校验失败返回原因给 DM，DM 用自然语言解释 → 校验通过则结算 → 写事件 → 快照更新 → DM 讲述结果。
-- DM 一次只能提议，不能连续提议 3 个动作绕过能量限制。能量不够就是不够。
+- 流程：玩家说话 → DM 生成 1 个或多个 `ActionCommand` → 输入层转成 `InputCommand` → `DecisionSystem` 合并为 `Intent` → `ActionSystem` 校验（距离够吗？有这个物品吗？能量够吗？）→ 校验失败返回原因给 DM，DM 用自然语言解释 → 校验通过则结算 → 写事件 → 快照更新 → DM 讲述结果。
+- DM 一 tick 可以提多个 `ActionCommand`，个数不限；限制是能量，不是数量。每个命令单独校验、单独扣费，能量不够的那个不执行，不影响已经通过的。DM 不能靠一次提很多动作绕过能量限制，能量不够就是不够。
 
 ### 8.4 DM 绝对不能做的事
 
@@ -769,6 +831,8 @@ struct ActionCommand {
 ```
 
 生物文件里的 `traits` 是 `[{id, level}]` 列表，和 `skills` 同一种写法，空列表表示没有特质。初始放置不在生物文件里：生物文件没有地图字段，放置由第 10 节的场景表决定。
+
+注意上例的 `"health": 14` 是初始当前血量，不是 `max_hp`。`max_hp` 由器官公式算（健康时约 20，见第 2.6 节），不写在生物文件里；`health` 必须小于等于按公式算出的 `max_hp`，加载时校验，超了拒绝启动。
 
 ### 9.3 TOML 兼容：JSON 为主、TOML 可选
 
@@ -873,10 +937,12 @@ saves/<world_id>/<save_name>/
 
 ### 10.5 MVP 之后先做什么（按顺序）
 
+> 前期（原型 + MVP）只用键盘鼠标操作，不接 DM、不做上层应用（见第 8 节开头）。下面 1–3、5、6 是基座收尾，4 是基座完成后的上层阶段。
+
 1. 历史生成完整版：3 位统治者 → 5 件大事 → 3 处遗迹（现在只有东边遗迹可玩，另外 2 处先只做传说和起点状态，不派发任务）。
 2. 液体 / 地面效果完整版：火会蔓延、水会灭火。
 3. 制作 + 交易完整版。
-4. AI DM 接入：先接只读查询 + `ActionCommand`，再接叙述。
+4. 上层阶段——AI DM 接入：先接只读查询 + `ActionCommand`，再接叙述；同时做语音链路、语音房间、客户端。接入时模拟层不用改，DM 只多一个输入来源（见第 8 节）。
 5. 全量存档落地：全部组件快照 + 全部事件日志，用于测试、验证和重现。
 6. 数据工具：`ewil-data validate / convert`、`data/templates/`。
 
@@ -919,7 +985,7 @@ ewil replay --log <file>       # 按事件日志重放，不重新跑模拟
 
 ### 11.3 不变量与有界增长：每 tick 检查，破了就 panic
 
-不变量是永远不能破的规矩，写一个 `InvariantSystem`，每 tick 跑完（Phase 7 之后、Phase 8 之前）检查一遍，破了就 panic，并打出 tick 和当时正在处理的事件 id——不 panic、不静默吞掉，才查得到根。
+不变量是永远不能破的规矩，写一个 `InvariantSystem`，每 tick 跑完（Maintain 之后、Present 之前）检查一遍，破了就 panic，并打出 tick 和当时正在处理的事件 id——不 panic、不静默吞掉，才查得到根。`InvariantSystem` 是验证用的检查，不进第 4.2 节的系统表：它只读组件、不写任何组件、不参与模拟，只在测试与 soak 时启用。
 
 | 不变量 | 规则 | 破了说明什么 |
 |---|---|---|
@@ -939,6 +1005,8 @@ ewil replay --log <file>       # 按事件日志重放，不重新跑模拟
 | `EventLog` | 10000 条 | 归档到文件，不删、不改（见第 2.12 节） |
 | `EventBus` 队列 | 1000 条 / tick | 非关键事件丢弃并记一条日志，关键事件延到下一 tick（见第 7 节） |
 | 实体总数 | soak 期间稳定 | 尸体保留 100 tick 后清理，临时实体用完即删 |
+| 植物 | 每地块最多 1 株 | 扩散只向空的相邻地块播种（见第 2.3 节），满了就不播种 |
+| 动物 | 20 只 / 场景（第一版草案值，写在数据里） | 场景内动物数到上限时不繁殖（见第 2.3 节） |
 
 **soak 测试（长期稳定性测试）：** 随机行动跑 **3600+ tick**（25 天以上），随机移动、攻击、交易、睡觉、跨地图，断言四件事：不 panic、不崩溃；实体数稳定（按上表检查）；每 tick 耗时在预算内（预算写进测试，超了就失败，不是“跑得慢点也没事”）；EventBus 队列不超过 1000 条。soak 抓的是单元测试抓不到的连锁反应：事件死循环、声望爆炸、尸体不清理、队列越积越长。
 
@@ -997,7 +1065,7 @@ ewil/
 
 ## 附录 C：主要风险
 
-- **风险 1：系统顺序靠注册顺序。** 对策：第 3.3 节的 Phase 写死，写测试断言执行顺序。
+- **风险 1：系统顺序靠注册顺序。** 对策：第 3.3 节的自定义 phase 写死，写测试断言执行顺序；同一个 phase 里的系统必须写独立。
 - **风险 2：DM 绕过模拟。** 对策：第 8 节的接口是唯一写入口，代码评审时任何直接改 `Health` 组件都要被拦下。
 - **风险 3：记忆无限增长。** 对策：`Memories` 上限 16 条，`EventLog` 上限 10000 条，超了归档。
 - **风险 4：一开始就做太大。** 对策：第 10 节的 MVP 是上限，不是下限。跑不通就砍内容，不砍基座。

@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 12,
   "id": "villager_innkeeper",
-  "mutations": [],
   "name": "阿桂",
   "prefab": "Villager",
   "schedule": {
@@ -21,10 +20,11 @@
     }
   ],
   "stats": {
-    "agi": 10,
+    "dex": 10,
+    "int": 12,
     "str": 8,
-    "tou": 9,
     "wil": 12
   },
+  "traits": [],
   "version": 1
 }

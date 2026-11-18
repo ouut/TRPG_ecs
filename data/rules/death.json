@@ -1,1 +1,14 @@
-{"corpse_retention_ticks":100,"id":"death","npc_death":"Permanent. A 'died' entry is left in memories and reputation. The corpse is kept for 100 ticks, then cleaned up (see section 9 bounded growth).","player_death":{"money_lost_fraction":0.1,"note":"Death has a cost but does not delete the save. Permanent death for players is a later option to discuss, not the v1 default.","respawn_after_ticks":24,"respawn_at":"village inn","retained":"memories and reputation are kept"},"source_doc":"ecs-architecture.md v1.0/v1.1, section 4.3","version":1}
+{
+  "corpse_retention_ticks": 100,
+  "id": "death",
+  "npc_death": "Permanent. A 'died' entry is left in memories and reputation. The corpse is kept for 100 ticks, then cleaned up (see section 9 bounded growth).",
+  "player_death": {
+    "money_lost_fraction": 0.1,
+    "note": "Death has a cost but does not delete the save. Permanent death for players is a later option to discuss, not the v1 default.",
+    "respawn_after_ticks": 24,
+    "respawn_at": "village inn",
+    "retained": "memories and reputation are kept"
+  },
+  "source_doc": "ecs-architecture.md v2.0, section 6.1",
+  "version": 1
+}

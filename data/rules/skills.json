@@ -4,7 +4,7 @@
     0,
     5
   ],
-  "note": "v1.3: no fixed skill list. Skills are an open registry: data/skills/<id>.json defines a skill, add a file to add a skill. These 12 are seed examples only, not a cap. Creature files' job-flavoured skill ids (smithing, guarding, etc.) map onto the registry by tags; see ecs-architecture.md section 4.3.",
+  "note": "v2.0: no fixed skill list. Skills are an open registry: data/skills/<id>.json defines a skill, add a file to add a skill. These 12 are seed examples only, not a cap. Creature files' job-flavoured skill ids (smithing, guarding, etc.) are registry entries in data/skills/; see ecs-architecture.md section 6.",
   "skills": [
     {
       "id": "melee",
@@ -55,6 +55,6 @@
       "name": "仪式"
     }
   ],
-  "source_doc": "ecs-architecture.md v1.0/v1.1, section 4.3. Note: section 2.3 says 'v1 只做 6 个技能', which contradicts the 12 here - needs a user decision on which count is right.",
+  "source_doc": "ecs-architecture.md v2.0, section 6",
   "version": 1
 }

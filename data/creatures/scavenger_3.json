@@ -3,12 +3,6 @@
   "faction": "scavengers",
   "health": 11,
   "id": "scavenger_3",
-  "mutations": [
-    {
-      "id": "weak_acid_spit",
-      "level": 1
-    }
-  ],
   "name": "酸水",
   "prefab": "Scavenger",
   "schedule": {
@@ -22,10 +16,16 @@
     }
   ],
   "stats": {
-    "agi": 10,
+    "dex": 10,
+    "int": 9,
     "str": 8,
-    "tou": 9,
     "wil": 9
   },
+  "traits": [
+    {
+      "id": "weak_acid_spit",
+      "level": 1
+    }
+  ],
   "version": 1
 }

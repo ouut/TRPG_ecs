@@ -3,12 +3,6 @@
   "faction": "villagers",
   "health": 12,
   "id": "villager_apprentice",
-  "mutations": [
-    {
-      "id": "extra_arms",
-      "level": 1
-    }
-  ],
   "name": "小锤",
   "prefab": "Villager",
   "schedule": {
@@ -22,10 +16,16 @@
     }
   ],
   "stats": {
-    "agi": 11,
+    "dex": 11,
+    "int": 8,
     "str": 10,
-    "tou": 10,
     "wil": 8
   },
+  "traits": [
+    {
+      "id": "extra_arms",
+      "level": 1
+    }
+  ],
   "version": 1
 }

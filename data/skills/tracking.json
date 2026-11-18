@@ -1,0 +1,16 @@
+{
+  "governs": "perception + int",
+  "id": "tracking",
+  "name": "追踪",
+  "tags": [
+    "track",
+    "sign",
+    "prey"
+  ],
+  "version": 1,
+  "xp_curve": {
+    "xp_on_fail": 3,
+    "xp_on_success": 10,
+    "xp_per_level": "100 * current_level"
+  }
+}

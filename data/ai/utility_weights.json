@@ -7,23 +7,19 @@
     "w_goal": "How close this action gets the entity to its current goal (e.g. a hunter's goal 'catch prey today' makes hunting score high).",
     "w_memory": "Whether memory pushes toward or away from this action (attacked by someone -> revenge / avoidance scores high; helped by someone -> helping them scores high).",
     "w_need": "How urgently this action relieves a need (hunger 90 -> eating scores near 1; hunger 10 -> eating scores low).",
+    "w_personality": "How well this action matches the entity's Personality component (bravery, aggression, curiosity, greed, sociability, caution). This is the root-cause term: behavior is the result, not the cause.",
     "w_reputation": "How this action affects reputation (helping a friendly faction scores high; offending one scores low).",
-    "w_schedule": "Whether it is the right time for this action (working at the forge by day scores high; at midnight it scores low).",
-    "w_personality": "How well this action matches the entity's Personality component (bravery, aggression, curiosity, greed, sociability, caution). This is the root-cause term: behavior is the result, not the cause."
+    "w_schedule": "Whether it is the right time for this action (working at the forge by day scores high; at midnight it scores low)."
   },
-  "score": "score(action) = w_need * need(action) + w_memory * memory(action) + w_reputation * reputation(action) + w_goal * goal(action) + w_schedule * schedule(action) + w_personality * personality(action). Each term is normalized to 0..1 before weighting.",
-  "source_doc": "ecs-architecture.md v1.2, section 4.2",
-  "version": 2,
-  "weights": {
-    "w_need": 0.3,
-    "w_memory": 0.15,
-    "w_reputation": 0.15,
-    "w_goal": 0.15,
-    "w_schedule": 0.1,
-    "w_personality": 0.15
+  "normalizations": {
+    "goal": "1 if it advances the current Goal, 0.5 if unrelated, 0 if it contradicts the goal; 0.5 for all actions when there is no goal",
+    "memory": "0.5 + push/pull: strength/200 added when memory pushes toward the action, subtracted when it pulls away; clamped 0..1; no relevant memory scores 0.5",
+    "need": "most urgent need relieved by this action / 100; unrelated actions score 0",
+    "personality": "action affinity value linearly normalized to 0..1 over the affinity range in data",
+    "reputation": "0.5 + expected reputation delta / 40, clamped 0..1; unrelated actions score 0.5",
+    "schedule": "1 if now is the scheduled time for this action, 0.5 if unrelated, 0 if wrong time"
   },
   "personality": {
-    "component": "Personality { bravery, aggression, curiosity, greed, sociability, caution }, each 0-10, initial values in creature data",
     "action_affinities": [
       {
         "action": "attack",
@@ -50,13 +46,12 @@
         "eats": "greed - caution"
       }
     ],
+    "component": "Personality { bravery, aggression, curiosity, greed, sociability, caution }, each 0-10, initial values in creature data",
     "drift": {
       "cap": [
         0,
         10
       ],
-      "max_single_step": 1,
-      "note": "Personality drifts slowly and only after major events, never by counting how often an action was done. Counting behavior is circular: the trait is the cause, the behavior is the result.",
       "events": [
         {
           "delta": {
@@ -83,8 +78,21 @@
           },
           "trigger": "first_ruin_treasure_found"
         }
-      ]
+      ],
+      "max_single_step": 1,
+      "note": "Personality drifts slowly and only after major events, never by counting how often an action was done. Counting behavior is circular: the trait is the cause, the behavior is the result."
     },
     "note": "Player and NPC share the same rule. A player's Personality is set at character creation (data, player-chosen or random) and drifts by the same major-event rules; offline takeover uses that same Personality, so offline behavior mirrors the player's own traits."
+  },
+  "score": "score(action) = w_need * need(action) + w_memory * memory(action) + w_reputation * reputation(action) + w_goal * goal(action) + w_schedule * schedule(action) + w_personality * personality(action). Each term is normalized to 0..1 before weighting.",
+  "source_doc": "ecs-architecture.md v2.0, section 5",
+  "version": 2,
+  "weights": {
+    "w_goal": 0.15,
+    "w_memory": 0.15,
+    "w_need": 0.3,
+    "w_personality": 0.15,
+    "w_reputation": 0.15,
+    "w_schedule": 0.1
   }
 }

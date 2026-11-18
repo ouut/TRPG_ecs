@@ -3,12 +3,6 @@
   "faction": "mechanists",
   "health": 12,
   "id": "mechanist_hermit",
-  "mutations": [
-    {
-      "id": "weak_telepathy",
-      "level": 1
-    }
-  ],
   "name": "锈眼",
   "prefab": "Hermit",
   "schedule": {
@@ -26,10 +20,16 @@
     }
   ],
   "stats": {
-    "agi": 8,
+    "dex": 8,
+    "int": 14,
     "str": 7,
-    "tou": 8,
     "wil": 14
   },
+  "traits": [
+    {
+      "id": "weak_telepathy",
+      "level": 1
+    }
+  ],
   "version": 1
 }

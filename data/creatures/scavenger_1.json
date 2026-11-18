@@ -3,7 +3,6 @@
   "faction": "scavengers",
   "health": 12,
   "id": "scavenger_1",
-  "mutations": [],
   "name": "瘦猴",
   "prefab": "Scavenger",
   "schedule": {
@@ -21,10 +20,11 @@
     }
   ],
   "stats": {
-    "agi": 12,
+    "dex": 12,
+    "int": 10,
     "str": 9,
-    "tou": 8,
     "wil": 10
   },
+  "traits": [],
   "version": 1
 }

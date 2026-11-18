@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 11,
   "id": "villager_cook",
-  "mutations": [],
   "name": "阿香",
   "prefab": "Villager",
   "schedule": {
@@ -17,10 +16,11 @@
     }
   ],
   "stats": {
-    "agi": 9,
+    "dex": 9,
+    "int": 10,
     "str": 8,
-    "tou": 10,
     "wil": 10
   },
+  "traits": [],
   "version": 1
 }

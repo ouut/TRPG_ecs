@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 11,
   "id": "villager_doctor",
-  "mutations": [],
   "name": "白芷",
   "prefab": "Villager",
   "schedule": {
@@ -17,10 +16,11 @@
     }
   ],
   "stats": {
-    "agi": 9,
+    "dex": 9,
+    "int": 13,
     "str": 7,
-    "tou": 8,
     "wil": 13
   },
+  "traits": [],
   "version": 1
 }

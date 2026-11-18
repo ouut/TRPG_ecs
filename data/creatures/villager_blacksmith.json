@@ -3,7 +3,6 @@
   "faction": "villagers",
   "health": 14,
   "id": "villager_blacksmith",
-  "mutations": [],
   "name": "铁匠",
   "prefab": "Villager",
   "schedule": {
@@ -17,10 +16,11 @@
     }
   ],
   "stats": {
-    "agi": 8,
+    "dex": 8,
+    "int": 10,
     "str": 12,
-    "tou": 12,
     "wil": 10
   },
+  "traits": [],
   "version": 1
 }

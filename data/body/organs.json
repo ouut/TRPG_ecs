@@ -1,31 +1,109 @@
 {
   "id": "organs",
-  "version": 1,
-  "source_doc": "ecs-architecture.md v1.6, section 4.3 (v1.3 body split). DRAFT - first-pass values taken only from the doc; tune in simulation per section 9.",
+  "max_hp_formula": "max_hp = 20 * (0.5 * heart_health + 0.3 * lung_health + 0.2 * brain_health)",
   "note": "No single constitution modifier (v1.3). Body is three layers: systems -> organs -> tissues, each a BodyPart sub-entity. Organ health = BodyPart.hp / max_hp. Brain or heart at zero = death, no need to wait for whole-body hp to reach zero.",
-  "max_hp_formula": "max_hp = 10 + heart_health * 0.5 + lung_health * 0.3 + brain_health * 0.2",
-  "systems": [
-    {"id": "musculoskeletal", "name": "运动系统"},
-    {"id": "circulatory", "name": "循环系统"},
-    {"id": "respiratory", "name": "呼吸系统"},
-    {"id": "digestive", "name": "消化系统"},
-    {"id": "nervous", "name": "神经系统"},
-    {"id": "integumentary", "name": "皮肤系统"}
-  ],
   "organs_v1": [
-    {"id": "brain", "name": "脑", "system": "nervous", "max_hp_weight": 0.2, "on_damage": "反应和智力下降；效用 AI 打分里的 personality 项受影响", "at_zero": "死亡"},
-    {"id": "heart", "name": "心", "system": "circulatory", "max_hp_weight": 0.5, "on_damage": "能量获取和速度下降", "at_zero": "死亡"},
-    {"id": "lung", "name": "肺", "system": "respiratory", "max_hp_weight": 0.3, "on_damage": "疲劳涨得快、跑不动"},
-    {"id": "liver", "name": "肝", "system": "digestive", "on_damage": "抗毒下降"},
-    {"id": "spleen", "name": "脾", "system": "circulatory", "on_damage": "免疫下降，容易生病"},
-    {"id": "kidney", "name": "肾", "system": "circulatory", "on_damage": "毒素排不出去，持续掉血"},
-    {"id": "stomach", "name": "胃", "system": "digestive", "on_damage": "吃东西回得少、饿得快"}
+    {
+      "at_zero": "死亡",
+      "id": "brain",
+      "max_hp_weight": 0.2,
+      "name": "脑",
+      "on_damage": "反应和智力下降；效用 AI 打分里的 personality 项受影响",
+      "system": "nervous"
+    },
+    {
+      "at_zero": "死亡",
+      "id": "heart",
+      "max_hp_weight": 0.5,
+      "name": "心",
+      "on_damage": "能量获取和速度下降",
+      "system": "circulatory"
+    },
+    {
+      "id": "lung",
+      "max_hp_weight": 0.3,
+      "name": "肺",
+      "on_damage": "疲劳涨得快、跑不动",
+      "system": "respiratory"
+    },
+    {
+      "id": "liver",
+      "name": "肝",
+      "on_damage": "抗毒下降",
+      "system": "digestive"
+    },
+    {
+      "id": "spleen",
+      "name": "脾",
+      "on_damage": "免疫下降，容易生病",
+      "system": "circulatory"
+    },
+    {
+      "id": "kidney",
+      "name": "肾",
+      "on_damage": "毒素排不出去，持续掉血",
+      "system": "circulatory"
+    },
+    {
+      "id": "stomach",
+      "name": "胃",
+      "on_damage": "吃东西回得少、饿得快",
+      "system": "digestive"
+    }
+  ],
+  "source_doc": "ecs-architecture.md v2.0, section 2.6. DRAFT - first-pass values taken only from the doc; tune in simulation per section 11.",
+  "systems": [
+    {
+      "id": "musculoskeletal",
+      "name": "运动系统"
+    },
+    {
+      "id": "circulatory",
+      "name": "循环系统"
+    },
+    {
+      "id": "respiratory",
+      "name": "呼吸系统"
+    },
+    {
+      "id": "digestive",
+      "name": "消化系统"
+    },
+    {
+      "id": "nervous",
+      "name": "神经系统"
+    },
+    {
+      "id": "integumentary",
+      "name": "皮肤系统"
+    }
   ],
   "tissues": [
-    {"id": "skin", "name": "皮肤", "on_damage": "受伤会感染、怕冷怕热"},
-    {"id": "hair", "name": "毛发", "on_damage": "血量低、功能弱，主要是可烧、可剪、可留痕；烧了头发事件日志记一条；毛发会慢慢长回来"},
-    {"id": "blood_vessels", "name": "血管", "on_damage": "受伤流血，每 tick 按伤口大小掉血，包扎止血"},
-    {"id": "muscle", "name": "肌肉", "on_damage": "力量下降"},
-    {"id": "bone", "name": "骨骼", "on_damage": "对应部位不能用"}
-  ]
+    {
+      "id": "skin",
+      "name": "皮肤",
+      "on_damage": "受伤会感染、怕冷怕热"
+    },
+    {
+      "id": "hair",
+      "name": "毛发",
+      "on_damage": "血量低、功能弱，主要是可烧、可剪、可留痕；烧了头发事件日志记一条；毛发会慢慢长回来"
+    },
+    {
+      "id": "blood_vessels",
+      "name": "血管",
+      "on_damage": "受伤流血，每 tick 按伤口大小掉血，包扎止血"
+    },
+    {
+      "id": "muscle",
+      "name": "肌肉",
+      "on_damage": "力量下降"
+    },
+    {
+      "id": "bone",
+      "name": "骨骼",
+      "on_damage": "对应部位不能用"
+    }
+  ],
+  "version": 1
 }
