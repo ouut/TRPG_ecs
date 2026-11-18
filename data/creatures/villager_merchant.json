@@ -1,13 +1,23 @@
 {
-  "desc": "村里的商人，嗓门大，记性更好",
-  "faction": "villagers",
-  "health": 12,
   "id": "villager_merchant",
   "name": "阿珍",
+  "desc": "村里的商人，嗓门大，记性更好",
   "prefab": "Villager",
-  "schedule": {
-    "day": "run_stall",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 12,
+  "stats": {
+    "dex": 10,
+    "int": 12,
+    "str": 8,
+    "wil": 12
+  },
+  "personality": {
+    "bravery": 5,
+    "aggression": 3,
+    "curiosity": 6,
+    "greed": 8,
+    "sociability": 8,
+    "caution": 5
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 10,
-    "int": 12,
-    "str": 8,
-    "wil": 12
-  },
   "traits": [],
+  "schedule": {
+    "day": "run_stall",
+    "night": "go_home"
+  },
   "version": 1
 }

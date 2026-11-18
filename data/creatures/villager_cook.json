@@ -1,13 +1,23 @@
 {
-  "desc": "村里的厨子，一锅汤能换半袋水",
-  "faction": "villagers",
-  "health": 11,
   "id": "villager_cook",
   "name": "阿香",
+  "desc": "村里的厨子，一锅汤能换半袋水",
   "prefab": "Villager",
-  "schedule": {
-    "day": "cook_meals",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 11,
+  "stats": {
+    "dex": 9,
+    "int": 10,
+    "str": 8,
+    "wil": 10
+  },
+  "personality": {
+    "bravery": 5,
+    "aggression": 2,
+    "curiosity": 5,
+    "greed": 4,
+    "sociability": 8,
+    "caution": 5
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 9,
-    "int": 10,
-    "str": 8,
-    "wil": 10
-  },
   "traits": [],
+  "schedule": {
+    "day": "cook_meals",
+    "night": "go_home"
+  },
   "version": 1
 }

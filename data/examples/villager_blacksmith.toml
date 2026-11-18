@@ -13,6 +13,14 @@ dex = 8
 wil = 10
 int = 10
 
+[personality]
+bravery = 6
+aggression = 3
+curiosity = 4
+greed = 5
+sociability = 6
+caution = 6
+
 [[skills]]
 id = "smithing"
 level = 3

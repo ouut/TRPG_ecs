@@ -1,13 +1,23 @@
 {
-  "desc": "旅店老板娘，消息比酒更值钱",
-  "faction": "villagers",
-  "health": 12,
   "id": "villager_innkeeper",
   "name": "阿桂",
+  "desc": "旅店老板娘，消息比酒更值钱",
   "prefab": "Villager",
-  "schedule": {
-    "day": "run_inn",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 12,
+  "stats": {
+    "dex": 10,
+    "int": 12,
+    "str": 8,
+    "wil": 12
+  },
+  "personality": {
+    "bravery": 5,
+    "aggression": 2,
+    "curiosity": 6,
+    "greed": 7,
+    "sociability": 9,
+    "caution": 5
   },
   "skills": [
     {
@@ -19,12 +29,10 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 10,
-    "int": 12,
-    "str": 8,
-    "wil": 12
-  },
   "traits": [],
+  "schedule": {
+    "day": "run_inn",
+    "night": "go_home"
+  },
   "version": 1
 }

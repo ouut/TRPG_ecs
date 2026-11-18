@@ -1,13 +1,23 @@
 {
-  "desc": "种了一辈子红薯的农夫，认得每一块田",
-  "faction": "villagers",
-  "health": 13,
   "id": "villager_farmer",
   "name": "老田",
+  "desc": "种了一辈子红薯的农夫，认得每一块田",
   "prefab": "Villager",
-  "schedule": {
-    "day": "tend_fields",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 13,
+  "stats": {
+    "dex": 8,
+    "int": 9,
+    "str": 11,
+    "wil": 9
+  },
+  "personality": {
+    "bravery": 5,
+    "aggression": 2,
+    "curiosity": 3,
+    "greed": 3,
+    "sociability": 5,
+    "caution": 7
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 8,
-    "int": 9,
-    "str": 11,
-    "wil": 9
-  },
   "traits": [],
+  "schedule": {
+    "day": "tend_fields",
+    "night": "go_home"
+  },
   "version": 1
 }

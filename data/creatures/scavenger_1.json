@@ -1,13 +1,23 @@
 {
-  "desc": "拾荒者头目，笑起来只剩牙",
-  "faction": "scavengers",
-  "health": 12,
   "id": "scavenger_1",
   "name": "瘦猴",
+  "desc": "拾荒者头目，笑起来只剩牙",
   "prefab": "Scavenger",
-  "schedule": {
-    "day": "scavenge_ruins",
-    "night": "camp_outside"
+  "faction": "scavengers",
+  "health": 12,
+  "stats": {
+    "dex": 12,
+    "int": 10,
+    "str": 9,
+    "wil": 10
+  },
+  "personality": {
+    "bravery": 6,
+    "aggression": 6,
+    "curiosity": 6,
+    "greed": 8,
+    "sociability": 6,
+    "caution": 4
   },
   "skills": [
     {
@@ -19,12 +29,10 @@
       "level": 1
     }
   ],
-  "stats": {
-    "dex": 12,
-    "int": 10,
-    "str": 9,
-    "wil": 10
-  },
   "traits": [],
+  "schedule": {
+    "day": "scavenge_ruins",
+    "night": "camp_outside"
+  },
   "version": 1
 }

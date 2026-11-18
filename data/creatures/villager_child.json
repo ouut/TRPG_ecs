@@ -1,21 +1,29 @@
 {
-  "desc": "村里最小的孩子，整天追着鸡跑",
-  "faction": "villagers",
-  "health": 8,
   "id": "villager_child",
   "name": "小豆",
+  "desc": "村里最小的孩子，整天追着鸡跑",
   "prefab": "Villager",
-  "schedule": {
-    "day": "play_in_village",
-    "night": "go_home"
-  },
-  "skills": [],
+  "faction": "villagers",
+  "health": 8,
   "stats": {
     "dex": 11,
     "int": 8,
     "str": 5,
     "wil": 8
   },
+  "personality": {
+    "bravery": 3,
+    "aggression": 2,
+    "curiosity": 9,
+    "greed": 3,
+    "sociability": 8,
+    "caution": 2
+  },
+  "skills": [],
   "traits": [],
+  "schedule": {
+    "day": "play_in_village",
+    "night": "go_home"
+  },
   "version": 1
 }

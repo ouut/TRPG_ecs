@@ -1,13 +1,23 @@
 {
-  "desc": "村口巡逻兵，盾牌上刻着三道划痕",
-  "faction": "villagers",
-  "health": 16,
   "id": "patrol_guard_1",
   "name": "铁柱",
+  "desc": "村口巡逻兵，盾牌上刻着三道划痕",
   "prefab": "Guard",
-  "schedule": {
-    "day": "patrol_village",
-    "night": "guard_gate"
+  "faction": "villagers",
+  "health": 16,
+  "stats": {
+    "dex": 9,
+    "int": 9,
+    "str": 12,
+    "wil": 9
+  },
+  "personality": {
+    "bravery": 7,
+    "aggression": 6,
+    "curiosity": 3,
+    "greed": 2,
+    "sociability": 5,
+    "caution": 6
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 9,
-    "int": 9,
-    "str": 12,
-    "wil": 9
-  },
   "traits": [],
+  "schedule": {
+    "day": "patrol_village",
+    "night": "guard_gate"
+  },
   "version": 1
 }

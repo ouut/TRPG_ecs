@@ -1,13 +1,23 @@
 {
-  "desc": "村里的医生，药柜里总有一股苦味",
-  "faction": "villagers",
-  "health": 11,
   "id": "villager_doctor",
   "name": "白芷",
+  "desc": "村里的医生，药柜里总有一股苦味",
   "prefab": "Villager",
-  "schedule": {
-    "day": "tend_clinic",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 11,
+  "stats": {
+    "dex": 9,
+    "int": 13,
+    "str": 7,
+    "wil": 13
+  },
+  "personality": {
+    "bravery": 4,
+    "aggression": 1,
+    "curiosity": 6,
+    "greed": 2,
+    "sociability": 7,
+    "caution": 7
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 9,
-    "int": 13,
-    "str": 7,
-    "wil": 13
-  },
   "traits": [],
+  "schedule": {
+    "day": "tend_clinic",
+    "night": "go_home"
+  },
   "version": 1
 }

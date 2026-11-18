@@ -1,13 +1,23 @@
 {
-  "desc": "猎手，夜里眼睛会发光，从不走空",
-  "faction": "villagers",
-  "health": 13,
   "id": "villager_hunter",
   "name": "夜鹰",
+  "desc": "猎手，夜里眼睛会发光，从不走空",
   "prefab": "Villager",
-  "schedule": {
-    "day": "hunt_outside",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 13,
+  "stats": {
+    "dex": 13,
+    "int": 10,
+    "str": 10,
+    "wil": 10
+  },
+  "personality": {
+    "bravery": 7,
+    "aggression": 5,
+    "curiosity": 6,
+    "greed": 4,
+    "sociability": 4,
+    "caution": 5
   },
   "skills": [
     {
@@ -19,17 +29,15 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 13,
-    "int": 10,
-    "str": 10,
-    "wil": 10
-  },
   "traits": [
     {
       "id": "night_vision",
       "level": 1
     }
   ],
+  "schedule": {
+    "day": "hunt_outside",
+    "night": "go_home"
+  },
   "version": 1
 }

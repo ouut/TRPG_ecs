@@ -1,13 +1,23 @@
 {
-  "desc": "皮糙肉厚的巡逻兵，挨过一刀只留了道白印",
-  "faction": "villagers",
-  "health": 18,
   "id": "patrol_guard_2",
   "name": "石头",
+  "desc": "皮糙肉厚的巡逻兵，挨过一刀只留了道白印",
   "prefab": "Guard",
-  "schedule": {
-    "day": "patrol_village",
-    "night": "guard_gate"
+  "faction": "villagers",
+  "health": 18,
+  "stats": {
+    "dex": 8,
+    "int": 8,
+    "str": 13,
+    "wil": 8
+  },
+  "personality": {
+    "bravery": 8,
+    "aggression": 6,
+    "curiosity": 2,
+    "greed": 2,
+    "sociability": 4,
+    "caution": 4
   },
   "skills": [
     {
@@ -15,17 +25,15 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 8,
-    "int": 8,
-    "str": 13,
-    "wil": 8
-  },
   "traits": [
     {
       "id": "thick_skin",
       "level": 1
     }
   ],
+  "schedule": {
+    "day": "patrol_village",
+    "night": "guard_gate"
+  },
   "version": 1
 }

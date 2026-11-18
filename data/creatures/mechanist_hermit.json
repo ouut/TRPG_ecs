@@ -1,13 +1,23 @@
 {
-  "desc": "守在遗迹里的机械教团隐士，脑子里总有机器的低鸣",
-  "faction": "mechanists",
-  "health": 12,
   "id": "mechanist_hermit",
   "name": "锈眼",
+  "desc": "守在遗迹里的机械教团隐士，脑子里总有机器的低鸣",
   "prefab": "Hermit",
-  "schedule": {
-    "day": "guard_ruin",
-    "night": "meditate_ruin"
+  "faction": "mechanists",
+  "health": 12,
+  "stats": {
+    "dex": 8,
+    "int": 14,
+    "str": 7,
+    "wil": 14
+  },
+  "personality": {
+    "bravery": 3,
+    "aggression": 2,
+    "curiosity": 9,
+    "greed": 2,
+    "sociability": 2,
+    "caution": 8
   },
   "skills": [
     {
@@ -19,17 +29,15 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 8,
-    "int": 14,
-    "str": 7,
-    "wil": 14
-  },
   "traits": [
     {
       "id": "weak_telepathy",
       "level": 1
     }
   ],
+  "schedule": {
+    "day": "guard_ruin",
+    "night": "meditate_ruin"
+  },
   "version": 1
 }

@@ -1,13 +1,23 @@
 {
-  "desc": "拾荒者，双手长着弯钩一样的爪子",
-  "faction": "scavengers",
-  "health": 13,
   "id": "scavenger_2",
   "name": "爪子",
+  "desc": "拾荒者，双手长着弯钩一样的爪子",
   "prefab": "Scavenger",
-  "schedule": {
-    "day": "scavenge_ruins",
-    "night": "camp_outside"
+  "faction": "scavengers",
+  "health": 13,
+  "stats": {
+    "dex": 11,
+    "int": 8,
+    "str": 11,
+    "wil": 8
+  },
+  "personality": {
+    "bravery": 6,
+    "aggression": 8,
+    "curiosity": 3,
+    "greed": 6,
+    "sociability": 3,
+    "caution": 3
   },
   "skills": [
     {
@@ -15,17 +25,15 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 11,
-    "int": 8,
-    "str": 11,
-    "wil": 8
-  },
   "traits": [
     {
       "id": "claws",
       "level": 1
     }
   ],
+  "schedule": {
+    "day": "scavenge_ruins",
+    "night": "camp_outside"
+  },
   "version": 1
 }

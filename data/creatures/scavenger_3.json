@@ -1,13 +1,23 @@
 {
-  "desc": "拾荒者，能从嘴里喷出腐蚀性的酸液",
-  "faction": "scavengers",
-  "health": 11,
   "id": "scavenger_3",
   "name": "酸水",
+  "desc": "拾荒者，能从嘴里喷出腐蚀性的酸液",
   "prefab": "Scavenger",
-  "schedule": {
-    "day": "scavenge_ruins",
-    "night": "camp_outside"
+  "faction": "scavengers",
+  "health": 11,
+  "stats": {
+    "dex": 10,
+    "int": 9,
+    "str": 8,
+    "wil": 9
+  },
+  "personality": {
+    "bravery": 5,
+    "aggression": 6,
+    "curiosity": 4,
+    "greed": 5,
+    "sociability": 3,
+    "caution": 4
   },
   "skills": [
     {
@@ -15,17 +25,15 @@
       "level": 2
     }
   ],
-  "stats": {
-    "dex": 10,
-    "int": 9,
-    "str": 8,
-    "wil": 9
-  },
   "traits": [
     {
       "id": "weak_acid_spit",
       "level": 1
     }
   ],
+  "schedule": {
+    "day": "scavenge_ruins",
+    "night": "camp_outside"
+  },
   "version": 1
 }

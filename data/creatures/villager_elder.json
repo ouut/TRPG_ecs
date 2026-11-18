@@ -1,13 +1,23 @@
 {
-  "desc": "村长，记得三十年前红沙之战的每一个名字",
-  "faction": "villagers",
-  "health": 10,
   "id": "villager_elder",
   "name": "石爷",
+  "desc": "村长，记得三十年前红沙之战的每一个名字",
   "prefab": "Villager",
-  "schedule": {
-    "day": "tell_stories",
-    "night": "go_home"
+  "faction": "villagers",
+  "health": 10,
+  "stats": {
+    "dex": 7,
+    "int": 14,
+    "str": 7,
+    "wil": 14
+  },
+  "personality": {
+    "bravery": 4,
+    "aggression": 1,
+    "curiosity": 7,
+    "greed": 2,
+    "sociability": 8,
+    "caution": 7
   },
   "skills": [
     {
@@ -15,12 +25,10 @@
       "level": 3
     }
   ],
-  "stats": {
-    "dex": 7,
-    "int": 14,
-    "str": 7,
-    "wil": 14
-  },
   "traits": [],
+  "schedule": {
+    "day": "tell_stories",
+    "night": "go_home"
+  },
   "version": 1
 }
