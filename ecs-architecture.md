@@ -1,10 +1,12 @@
 # Ewil 活世界基座：ECS 架构设计
 
-- 版本：v0.4（2026-11-18 用户确认扩大 MVP：村子扩到 12 个 NPC + 第二张地图遗迹）
+- 版本：v0.5（2026-11-18）
 - 日期：2026-11-18
 - 目标产品：语音优先、轻量 2D、多人在线、实时 AI DM 的活世界 RPG（见 `Product_Concept_Ewil_ChaoChen__1.pdf`）
 - 定位：先做基座，不做完整游戏。灵感来源是 Caves of Qud，但不是复刻 Qud。
 - 技术基线：Rust + flecs_rust
+
+> v0.5 变更日志（2026-11-18，用户已确认的 6 项决定）：（1）方向：借鉴 Caves of Qud，不照搬；按通用 TRPG 方式做，变异不重要、不是核心支柱，降级为可选特质（Trait）。（2）组件分类：8 类正交分类，单一标准是组件描述的是哪一层事实 / 由哪一层系统消费，层只能向下使用；物品不是一类，资源也不是一类。（3）组件数量：全量目标约 300–350 个，扩大版 MVP 70–80 个，v1 约 150 个，增长来自通用 TRPG 的广度，不是变异。（4）系统确定：系统从行为（动词）出发，不是组件；单写者原则；6 类系统家族；系统数扩大版 MVP 约 18–22 个、v1 约 35–40 个，不是几百个。（5）事件驱动：新增第 3.5 节，在 Flecs 之上建中央 EventBus，observer 只触发 / 改事件 payload，不直接改组件。（6）`Mutation` 改名为 `Trait`，`MutationSystem` 改为 `TraitSystem`，检定公式里的“变异修正”改为“特质修正”；`data/mutations/` 下的 6 个文件保留为特质示例（目录名暂不改，迁移是后续工作，见 7.4）。
 
 > 一句话目标：基座要证明一件事——世界在没有玩家、没有 DM 讲话的时候也在自己运转，而且玩家做的事会留下可查询、可回放、不可悄悄抹掉的痕迹。
 
@@ -16,6 +18,7 @@
 - 确认 2：世界是 2D 网格、回合制。实时语音只是输入方式，底层模拟按 tick 推进，不按帧率推进。
 - 确认 3：v1 有两张可玩地图：村子 joppa（60x45）+ 东边遗迹 red_sand_ruin（40x30）。不做“近 100 万张地图”。先证明闭环，再扩规模。
 - 确认 4：AI DM 是“提议者 + 讲述者”，不是模拟器。所有世界状态改变必须经过模拟层校验和执行（见第 6 节）。
+- 确认 5：方向是借鉴 Caves of Qud、不照搬，按通用 TRPG 方式做。变异不重要、不是核心支柱，降级为可选特质（Trait）；从 Qud 借的是活世界模拟的结构（同构模拟、派系声望、历史生成、事件留痕、数据驱动组合），不是它的变异系统或设定内容（见第 5.1 节）。
 
 ---
 
@@ -26,14 +29,14 @@
 1. **同构模拟**：玩家和 NPC 用同一套组件和系统。NPC 不是背景板，它也会饿、会走路、会记仇、会被打死。
 2. **可查询的世界**：任何时刻都能回答“谁在哪、在干什么、和谁关系如何、这里发生过什么”，不需要 DM 靠猜。
 3. **后果可持久**：一次攻击、一次交易、一次背叛都会进事件日志和关系表，存档重载后还在。
-4. **数据驱动**：新生物、新物品、新变异靠改数据文件就能加，不用改 Rust 核心逻辑。
+4. **数据驱动**：新生物、新物品、新特质靠改数据文件就能加，不用改 Rust 核心逻辑。
 5. **DM 可接管但不可越权**：AI DM 能读世界、能提议行动、能要一次检定，但不能直接改血量、改位置、改声望。
 
 ### 1.2 v1 明确不做的事（非目标）
 
 - 不做 3D、不做实时动作战斗、不做复杂物理（刚体、抛物线）。
 - 不做完整液体模拟。v1 只做“地面上有水 / 火 / 毒雾”三类区域效果，不模拟流动、混合、蒸发。
-- 不做 70 种变异、60 个派系。v1 只做 6 种变异、3 个派系（见第 5 节）。
+- 变异不做核心系统，只保留 6 个特质示例。不做 60 个派系，v1 只做 3 个派系（见第 5 节）。
 - 不做程序化生成整张世界地图。v1 地图手工设计 + 少量程序化填充，历史生成只做“苏丹式”简化版。
 - 不做经济全模拟。v1 只做固定价格 + 声望折扣，不做供需、通货膨胀。
 - 不做 PvP 平衡和反作弊全套。v1 默认是合作房间，服务端校验只防非法命令，不防所有作弊。
@@ -55,6 +58,28 @@
 - 生物和物品先定义 Prefab（模板），再实例化。数值、名字、描述一律来自数据文件，不写死在代码里。
 - 组件要小、可序列化、可单独读 / 写。一个组件超过 8 个字段，先想想是不是该拆。
 
+### 2.1.1 组件分类：8 类，正交
+
+分类只用一个标准：**这个组件描述的是实体的哪一层事实、由哪一层系统消费**。层只能向下使用（上层可读下层，下层不依赖上层），每类回答一个问题，见 2.3 节的分组。
+
+| 类 | 回答的问题 | 例子 |
+|---|---|---|
+| （1）标识与呈现 | 它是谁、是什么？ | `Name`、`Player` |
+| （2）空间 | 它在哪？ | `Position` |
+| （3）物质与物理 | 它由什么构成、物理上怎么表现？ | `Item`、`Physics`（后续） |
+| （4）生命与身体 | 它的身体状态如何？ | `Health`、`Body`、`BodyPart`、`Needs` |
+| （5）能力 | 它能做什么、做得多好？ | `Stats`、`Skill`、`Trait`、`Weapon`、`Energy` |
+| （6）认知与决策 | 它知道什么、想要什么、决定做什么？ | `Perception`、`Memory`、`Schedule`、`AIState` |
+| （7）关系与社会 | 它和谁有什么关系、在社会里是什么位置？ | `Faction`、`Reputation`、任务、对话、交易 |
+| （8）世界与环境 | 世界本身是什么状态？ | `TileEffect`、`Map`（后续） |
+
+两条排除规则，分类时必须遵守：
+
+- **物品不是一类。** 物品只是一种实体，由上面 8 类拼出来：一把剑是（3）物质 +（5）能力（`Weapon`）+（7）关系里的交易价值。不要为“物品”单独设类。
+- **资源不是一类。** 每个资源按消费它的系统归类：饥饿 / 口渴 / 疲劳归（4）生命与身体（`Needs`），回合能量归（5）能力（`Energy`），货币归（7）关系与社会。不要为“资源”单独设类。
+
+检验规则（新组件必须通过，否则不许进表）：新组件必须且只能放进上面恰好一类，并写出消费它的系统名；如果能放进两类，说明这个组件本身该拆了，不是分类错了。
+
 ### 2.2 世界层级
 
 ```text
@@ -69,35 +94,76 @@ World（单例实体，挂 WorldState）
 - v1 有两个 `Map` 实体：`joppa`（60x45，村子）和 `red_sand_ruin`（40x30，东边遗迹）。每张地图一个 `MapGrid` 单例。格子数据存在 `MapGrid` 单例组件里，不给每个格子建实体，避免实体爆炸。
 - 玩家离线时，他的实体保留在世界里，挂 `Offline` 标签，不参与回合，但可以被偷、被攻击（由规则决定，v1 默认离线玩家不可被攻击）。
 
-### 2.3 核心组件表
+### 2.3 核心组件表（按 2.1.1 的 8 类分组）
+
+下表只重排、不删组件（除 `Mutation` 改名为 `Trait` 外，见下）。组件数 v0.5 仍为 23 个（+ 标签），数量增长见表下注释。
+
+**（1）标识与呈现**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
+| `Name` | `name: String, desc: String` | 展示名和一句话描述，供 DM 叙述用 |
+| `Player` | `account_id: String` | 玩家专属。NPC 不挂 |
+
+**（2）空间**
 
 | 组件 | 字段（Rust） | 说明 |
 |---|---|---|
 | `Position` | `x: i32, y: i32, map: Entity` | 网格坐标。移动只改这个组件，渲染只读它 |
-| `Name` | `name: String, desc: String` | 展示名和一句话描述，供 DM 叙述用 |
+
+**（3）物质与物理**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
+| `Item` | `kind: ItemKind, weight: i32, value: i32` | 物品本体。`kind` 是枚举：武器 / 防具 / 消耗品 / 材料 / 任务品。`value` 由交易系统（第 7 类）读，不因此改类 |
+
+**（4）生命与身体**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
 | `Health` | `hp: i32, max_hp: i32` | 0 即死亡，死亡系统接管，不由战斗系统直接删实体 |
-| `Stats` | `str_: i32, agi: i32, wil: i32, tou: i32, level: i32, xp: i32` | 基础四维 + 等级。检定用 `Stats` + 技能 + 变异修正 |
 | `Body` | `max_parts: i32` | 身体总览。肢体是子实体，不是字段 |
 | `BodyPart` | `slot: PartSlot, hp: i32, max_hp: i32, severed: bool` | 手、头、腿等。每个肢体是一个实体，用 `ChildOf` 挂在生物下 |
-| `Faction` | `base_rep: i32` | 只挂在派系实体上。个人声望存在关系上，不存在这里 |
-| `Reputation` | `value: i32` | 作为 Pair 的数据：`(MemberOf, 派系)` 的关系上可挂数据，或用单独的 `Reputation` 组件 + 目标字段。v1 用后者，见 2.4 |
-| `Inventory` | `capacity: i32, weight: i32` | 容量上限。物品用 `OwnedBy` 关系挂在生物下，不用数组 |
-| `Item` | `kind: ItemKind, weight: i32, value: i32` | 物品本体。`kind` 是枚举：武器 / 防具 / 消耗品 / 材料 / 任务品 |
-| `Weapon` | `damage: i32, range: i32, type_: DamageType` | 只有武器实体挂 |
-| `Mutation` | `mutation_id: String, level: i32` | 一个实体可挂多个。效果由 `MutationDef` 数据定义，见第 7 节 |
-| `Skill` | `skill_id: String, level: i32` | 同上。v1 只做 6 个技能 |
 | `Needs` | `hunger: i32, thirst: i32, fatigue: i32` | 0–100。超过阈值触发 AI 需求行为 |
+| `Dead` | `death_tick: i32, cause: DeathCause` | 标签 + 死亡信息。尸体保留 100 tick 后清理 |
+
+**（5）能力**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
+| `Stats` | `str_: i32, agi: i32, wil: i32, tou: i32, level: i32, xp: i32` | 基础四维 + 等级。检定用 `Stats` + 技能 + 特质修正 |
+| `Weapon` | `damage: i32, range: i32, type_: DamageType` | 只有武器实体挂 |
+| `Trait` | `trait_id: String, level: i32` | 可选特质（原 `Mutation`，v0.5 改名；变异不是核心支柱）。一个实体可挂多个。效果由 `TraitDef` 数据定义，见第 7 节 |
+| `Skill` | `skill_id: String, level: i32` | 同上。v1 只做 6 个技能 |
+| `Inventory` | `capacity: i32, weight: i32` | 容量上限。物品用 `OwnedBy` 关系挂在生物下，不用数组 |
+| `Energy` | `energy: i32, speed: i32` | 回合制能量。见第 3 节 |
+| `TurnActor` | （空组件 / 标签） | 能参与回合的实体才挂。墙、地面不挂 |
+
+**（6）认知与决策**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
 | `Schedule` | `day_job: String, night_home: String, wake_tick: i32, sleep_tick: i32` | 白天去哪、晚上回哪。MVP 的核心组件 |
 | `AIState` | `state: AIStateKind, target: Entity, state_tick: i32` | 当前状态：巡逻 / 工作 / 吃饭 / 睡觉 / 战斗 / 逃跑 / 跟随 |
 | `Perception` | `sight_range: i32` | 视野范围。v1 只做曼哈顿距离 + 视线遮挡简化版 |
 | `Memory` | 见 2.5 | 不是一个大组件，是一组关系 + 事件引用 |
-| `Energy` | `energy: i32, speed: i32` | 回合制能量。见第 3 节 |
-| `TurnActor` | （空组件 / 标签） | 能参与回合的实体才挂。墙、地面不挂 |
-| `Player` | `account_id: String` | 玩家专属。NPC 不挂 |
-| `Dead` | `death_tick: i32, cause: DeathCause` | 标签 + 死亡信息。尸体保留 100 tick 后清理 |
+
+**（7）关系与社会**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
+| `Faction` | `base_rep: i32` | 只挂在派系实体上。个人声望存在关系上，不存在这里 |
+| `Reputation` | `value: i32` | 作为 Pair 的数据：`(MemberOf, 派系)` 的关系上可挂数据，或用单独的 `Reputation` 组件 + 目标字段。v1 用后者，见 2.4 |
+
+**（8）世界与环境**
+
+| 组件 | 字段（Rust） | 说明 |
+|---|---|---|
 | `TileEffect` | `kind: EffectKind, intensity: i32, ttl: i32` | 地面效果：水、火、毒雾。存在 `MapGrid` 里，不单独建实体 |
 
-标签（Tag，无字段）：`NPC`、`Hostile`、`Friendly`、`Merchant`、`QuestGiver`、`Offline`、`Invisible`、`Flying`。
+标签（Tag，无字段），按 8 类归类：标识与呈现：`NPC`、`Offline`、`Invisible`；能力：`Flying`；关系与社会：`Hostile`、`Friendly`、`Merchant`、`QuestGiver`。
+
+> 组件数量目标（v0.5 已确认）：全量约 300–350 个，扩大版 MVP 70–80 个，v1 约 150 个。增长来自通用 TRPG 的广度——技能、专长 / 特质、法术 / 能力、物品行为、状态效果、AI 行为、社交与任务——不是变异。系统数不随组件数同比例增长，见第 4 节：多个组件共享一个数据驱动的系统。
 
 ### 2.4 关系（Pair）——这是 Flecs 最值得用的部分
 
@@ -223,7 +289,7 @@ Phase 2  OnUpdate    ：感知更新（谁看得见谁）
 Phase 3  OnUpdate    ：AI 决策（只生成 Intent，不直接改世界）
 Phase 4  OnUpdate    ：命令解析与执行（玩家命令 + AI Intent 统一进 Action 队列）
 Phase 5  OnUpdate    ：战斗结算、移动结算、拾取 / 使用 / 交易
-Phase 6  OnUpdate    ：派系与声望更新、事件日志写入
+Phase 6  OnUpdate    ：EventBus 排空（见 3.5：按优先级再按 id 处理队列，派系与声望更新、事件日志写入都在这里）
 Phase 7  PostUpdate  ：死亡清理、尸体处理、地面效果衰减
 Phase 8  PostFrame   ：快照生成、推送给客户端和 AI DM
 ```
@@ -241,38 +307,173 @@ Phase 8  PostFrame   ：快照生成、推送给客户端和 AI DM
 - 玩家上线时，抽象区域要能“展开”回具体状态：位置按 `Schedule` 推算，`Memories` 和 `Reputation` 保留，摘要事件已经写进日志，DM 可以直接讲出来。
 - v1 两张地图都全量模拟（玩家在其中一张时，另一张按 `Schedule` 降速推进，不逐 tick 跑每个 NPC）。跨地图旅行是显式的出口移动，不做跨地图抽象，抽象是 v2 的事。
 
+### 3.5 事件驱动机制（EventBus）
+
+**先分清两层。** Flecs 的 system 是拉 / 定期的：每 tick 对所有匹配实体跑一遍；observer 是推 / 反应式的：匹配事件发生时才跑。高频走 system，低频走 observer：高频事件若走 observer，每次都要查注册表、评估查询，成本远高于一次表扫描；低频事件若走 system，每 tick 扫全部实体等一个很少发生的事件是浪费。observer 只做触发和改事件 payload，**绝不直接改组件**（改组件是执行类系统的事，见第 4 节的单写者原则）。
+
+**不要只靠 Flecs 原生 observer。** 原生 `emit` 是同步的，不能排序、不能提前看队列、不能停止传播；大量事件下必须在 Flecs 之上再建一层中央 EventBus。Flecs observer 在这里只是适配器：把 `OnAdd` / `OnSet` / 自定义事件翻译成我们的 `GameEvent`，真正做事的是总线后面的系统。
+
+**事件定义。** 一个事件是一个 Rust enum，加一个带序号的壳；payload 里只放 `Entity` id 和数字，不放 `String`，避免每个事件都分配内存。
+
+```rust
+// 自定义事件：一个 struct 就是一个事件类型（Flecs observer 的事件参数）
+#[derive(Component)]
+struct BeforeAttack {
+    attacker: Entity,
+    defender: Entity,
+    damage: i32,
+    cancelled: bool,
+}
+
+// observer 只触发 / 改 payload，不直接改 Health / Position
+world
+    .observer::<BeforeAttack, &Health>()
+    .each_iter(|it, index, health| {
+        // 护甲减伤、特质加成都在这里改 payload 的 damage，
+        // 或把 cancelled 置 true；不要在这里 set Health
+        let _ = (it, index, health);
+    });
+
+// 发事件（Flecs 原生写法；游戏逻辑里发事件 = 入 EventBus 队列，见下）
+world
+    .event()
+    .add(Health::id())
+    .entity(defender)
+    .emit(&BeforeAttack { attacker, defender, damage: 10, cancelled: false });
+```
+
+**EventBus 结构。** 发事件 = 入队，处理事件 = 在固定 phase（Phase 6，见 3.3）里排空队列。处理时新产生的事件进下一轮队列，不直接处理，避免重入和无限递归。
+
+```rust
+enum GameEvent {
+    BeforeAttack { attacker: Entity, defender: Entity, damage: i32 },
+    AfterDamage { target: Entity, amount: i32, source: Entity },
+    OnDeath { target: Entity, cause: DeathCause },
+    BeforeMove { entity: Entity, x: i32, y: i32 },
+    AfterMove { entity: Entity, x: i32, y: i32 },
+    OnTrade { buyer: Entity, seller: Entity, item: Entity, price: i32 },
+    OnReputationChange { entity: Entity, faction: Entity, delta: i32 },
+    OnQuestComplete { entity: Entity, quest_id: String },
+    OnDiscover { entity: Entity, target: Entity },
+    // 其余事件见 3.5.1 的事件表
+}
+
+struct QueuedEvent {
+    id: u64,        // 全局序号，决定顺序和回放
+    tick: i32,
+    kind: EventKind,
+    source: Entity,
+    target: Entity,
+    payload: GameEvent,
+    priority: i32,  // 优先级档位，见下
+    cancelled: bool,
+}
+
+struct EventBus {
+    queue: std::collections::VecDeque<QueuedEvent>, // 单例，emit = 入队
+    next_id: u64,
+}
+```
+
+**Before / After 对。** 每个可干预的行为都是一对事件：`BeforeX` 可否决、可改 payload，`AfterX` 只做反应。`BeforeAttack` 被取消就不结算；结算后发 `AfterDamage`，再由它触发记忆、声望、死亡检查。不要只有一个 `Attack` 事件，否则否决和反应混在一起。
+
+**3 档优先级（写死）。** 第 1 档是否决类（护甲、免疫、闪避），能把 `cancelled` 置 true；第 2 档是修改类（特质、技能、环境加成），改 `damage` 等字段；第 3 档是反应类（记忆、声望、日志、死亡检查），只读不改。同一档内按组件 id 排序；队列按 `priority` 再按 `id` 排序。同一段日志回放必须得到同一结果，种子存在存档里（见 3.3）。
+
+**传播。** 事件发给一个实体时，沿关系展开：`ChildOf`（肢体 → 身体）、`OwnedBy`（物品 → 主人）、`LocatedIn`（实体 → 地图）、`MemberOf`（生物 → 派系）。展开时带已访问集合和深度上限 **3**，防止 A 转 B、B 转 A 死循环。
+
+**上限与合并。** 每 tick 最多处理 **1000** 个事件，超了非关键事件丢弃并记一条日志，关键事件延到下一 tick；递归深度上限 **8**，超了截断并报警。同类同目标的事件在同一 tick 内可合并结算（例如同一人同 tick 的三次毒伤合并成一次结算，日志里仍记三次）。
+
+**日志与回放。** 每个处理完的事件都追加进 `EventLog`（见 5.4），用同一个 `id`、同一个 `tick`，是同一批事件，不是两套。存档 = 组件快照 + 事件日志；回放 = 按 `id` 顺序重新入队处理一遍。AI DM 只读 `EventLog` 查世界，不直接读 Flecs 内部。
+
+**性能分工（重申）。** 高频（移动、感知、需求衰减）走 system 批量产生事件再入队；低频（死亡、交易、声望越阈值、任务完成）走 observer 触发入队。`OnSet` 只在 `set` 时触发，系统直接改字段不会触发，要触发必须用 `set` 或手动调 `modified`。
+
+#### 3.5.1 事件表（MVP：30 个事件，按 2.1.1 的 8 类分组）
+
+| 类 | 事件（Before / After 对） |
+|---|---|
+| （1）标识与呈现 | `OnDiscover`（发现实体 / 物品） |
+| （2）空间 | `BeforeMove` / `AfterMove`、`OnEnterMap` / `OnLeaveMap` |
+| （3）物质与物理 | `BeforeUse` / `AfterUse`（使用物品）、`OnBreak`（物品损坏）、`OnIgnite` / `OnExtinguish`（着火 / 灭火） |
+| （4）生命与身体 | `BeforeDamage` / `AfterDamage`、`BeforeDeath` / `OnDeath`、`OnLimbSevered`（断肢） |
+| （5）能力 | `BeforeAttack` / `AfterAttack`、`OnCheck`（检定完成）、`OnSkillUse`、`OnTraitTrigger`（特质触发） |
+| （6）认知与决策 | `OnPerceive`（看见新实体）、`OnMemoryAdd` / `OnMemoryForget`、`OnIntent`（决策产生意图） |
+| （7）关系与社会 | `OnTrade`、`BeforeTrade`（声望不够可否决）、`OnReputationChange`、`OnQuestComplete`、`OnConversation`（对话开始 / 结束） |
+| （8）世界与环境 | `OnTileEffect`（地面效果触发） |
+
+事件按行为长，不按组件数长：行为没到，事件先到了就是空转。新增事件必须先有对应的行为和 Before / After 对，并写进本表。
+
 ---
 
 ## 4. 系统列表（按优先级）
 
-P0 是 MVP 必须有，P1 是基座完整后下一批，P2 是明确排后。
+### 4.0 系统怎么确定（v0.5 已确认）
+
+系统从行为（动词）出发，不从组件出发：先列行为（移动、攻击、吃饭、睡觉、工作、交易、对话、制作），再定系统。一个系统由四样东西定死，缺一个就不算定下来：**输入查询**（哪个 archetype）、**输出**（改哪个组件）、**触发条件**（每 tick 跑 / 事件触发 / 组件变化触发）、**阶段**（第 3.3 节的 Phase）。
+
+三条规则：
+
+- **（a）定义规则**：同上，四要素缺一不可；触发条件只有三种，不要把 system、observer、pipeline 三种东西放进同一张表而不注明。
+- **（b）单写者原则**：一个组件只能由一个系统写，其他系统只能读。`Health` 只能由战斗结算写，`Position` 只能由移动写，`Intent` 只能由决策写。两个系统都想写同一个组件，说明要么该合并，要么中间缺了一个统一执行的系统。
+- **（c）6 类系统家族（按一个 tick 里的因果链，正交）**：**输入与时钟**（只收命令、推进时间，不改世界状态）；**感知**（只更新“知道什么”）；**决策**（只产 `Intent`，绝不直接改世界）；**执行**（唯一能改核心状态的一类，只认 `Intent`）；**结算与世界演化**（执行后的连锁反应）；**维护与呈现**（日志、存档、快照，不参与模拟）。每个系统只能进一类。
+
+系统数不随组件数同比例增长：组件全量约 300–350 个，系统扩大版 MVP 约 **18–22** 个、v1 约 **35–40** 个。多个组件共享一个数据驱动的系统（例如所有状态效果共用一个 `StatusSystem`，所有特质共用一个 `TraitSystem`，靠数据分发，不用每种特质一个系统）。
+
+P0 是 MVP 必须有，P1 是基座完整后下一批，P2 是明确排后。下表按 6 类家族重排，系统本身和数量不变（除新增 `EventProcessSystem`、改名 `TraitSystem` 外，见备注）。
 
 ### P0
+
+**输入与时钟**
 
 | 顺序 | 系统 | 输入 → 输出 | 备注 |
 |---|---|---|---|
 | 1 | `ClockSystem` | `WorldClock` → tick / day / hour | 只做时间，不做别的 |
-| 2 | `NeedsSystem` | `Needs` → hunger / thirst / fatigue +1 | 阈值到 80 触发 AI 需求 |
-| 3 | `PerceptionSystem` | `Position` + `Perception` → `Visible` 关系 | v1 用距离 + 简单遮挡，不做真实视线 |
-| 4 | `AIScheduleSystem` | `Schedule` + `WorldClock` + `AIState` → `Intent` | 白天巡逻 / 工作，晚上回家 |
-| 5 | `AICombatSystem` | `AIState` + `Memories` + `Reputation` → `Intent` | 被攻击过 → 逃跑或反击；声望低 → 拒绝交易 |
-| 6 | `ActionSystem` | `Intent` / 玩家命令 → `Position` / `Health` / `Inventory` | 唯一能改核心状态的系统 |
-| 7 | `CombatSystem` | 攻击 Intent → 检定 → `Health` / `BodyPart` | 检定公式见 4.1 |
-| 8 | `MovementSystem` | 移动 Intent → `Position` | 碰撞、地形、负重都在这里判 |
+
+**感知**
+
+| 顺序 | 系统 | 输入 → 输出 | 备注 |
+|---|---|---|---|
+| 2 | `PerceptionSystem` | `Position` + `Perception` → `Visible` 关系 | v1 用距离 + 简单遮挡，不做真实视线 |
+
+**决策（只产 Intent，不改世界）**
+
+| 顺序 | 系统 | 输入 → 输出 | 备注 |
+|---|---|---|---|
+| 3 | `AIScheduleSystem` | `Schedule` + `WorldClock` + `AIState` → `Intent` | 白天巡逻 / 工作，晚上回家 |
+| 4 | `AICombatSystem` | `AIState` + `Memories` + `Reputation` → `Intent` | 被攻击过 → 逃跑或反击；声望低 → 拒绝交易 |
+
+**执行（唯一能改核心状态）**
+
+| 顺序 | 系统 | 输入 → 输出 | 备注 |
+|---|---|---|---|
+| 5 | `ActionSystem` | `Intent` / 玩家命令 → `Position` / `Health` / `Inventory` | 统一执行的口子，决策只产 Intent，执行只认 Intent |
+| 6 | `CombatSystem` | 攻击 Intent → 检定 → `Health` / `BodyPart` | 检定公式见 4.1 |
+| 7 | `MovementSystem` | 移动 Intent → `Position` | 碰撞、地形、负重都在这里判 |
+
+**结算与世界演化**
+
+| 顺序 | 系统 | 输入 → 输出 | 备注 |
+|---|---|---|---|
+| 8 | `NeedsSystem` | `Needs` → hunger / thirst / fatigue +1 | 阈值到 80 触发 AI 需求 |
 | 9 | `DeathSystem` | `Health.hp <= 0` → `Dead` 标签 + 掉落 | 死亡不删实体，先变尸体 |
-| 10 | `EventLogSystem` | 所有系统 → `EventLog` | 只追加，不修改（见第 5 节） |
-| 11 | `SaveSystem` | 世界 → 存档文件 | Flecs 序列化 + 事件日志 |
+| 10 | `EventProcessSystem` | `EventBus` 队列 → 按优先级再按 id 处理（见 3.5） | 新增（v0.5）：Phase 6 排空队列，派系与声望更新、事件日志写入都在这里 |
+
+**维护与呈现（不参与模拟）**
+
+| 顺序 | 系统 | 输入 → 输出 | 备注 |
+|---|---|---|---|
+| 11 | `EventLogSystem` | 所有系统 → `EventLog` | 只追加，不修改（见第 5 节）；事件来自 EventBus，同一个 id |
+| 12 | `SaveSystem` | 世界 → 存档文件 | Flecs 序列化 + 事件日志 |
 
 ### P1
 
-| 系统 | 说明 |
-|---|---|
-| `FactionSystem` | 声望变化 → 派系态度 → NPC 行为阈值（见第 5 节） |
-| `HistorySystem` | 开局生成苏丹式历史，生成地点、人物、仇恨链 |
-| `TradeSystem` | 价格 = 基础价 × 声望折扣 × 稀缺系数，v1 不做供需 |
-| `CraftSystem` | 配方表驱动：2 材料 + 工具 → 1 物品 |
-| `TileEffectSystem` | 地面水 / 火 / 毒雾的伤害和持续时间 |
-| `MutationSystem` | 变异生效：被动加成 + 主动技能，效果来自数据 |
+| 系统 | 家族 | 说明 |
+|---|---|---|
+| `FactionSystem` | 结算与世界演化 | 声望变化 → 派系态度 → NPC 行为阈值（见第 5 节） |
+| `HistorySystem` | 结算与世界演化 | 开局生成苏丹式历史，生成地点、人物、仇恨链 |
+| `TradeSystem` | 执行 | 价格 = 基础价 × 声望折扣 × 稀缺系数，v1 不做供需 |
+| `CraftSystem` | 执行 | 配方表驱动：2 材料 + 工具 → 1 物品 |
+| `TileEffectSystem` | 结算与世界演化 | 地面水 / 火 / 毒雾的伤害和持续时间 |
+| `TraitSystem` | 执行 | 特质生效：被动加成 + 主动技能，效果来自数据（原 `MutationSystem`，v0.5 改名；变异不是核心支柱） |
 
 ### P2（v1 不做）
 
@@ -284,7 +485,7 @@ P0 是 MVP 必须有，P1 是基座完整后下一批，P2 是明确排后。
 ### 4.1 检定公式（v1 定死一个，别每个系统各搞一套）
 
 ```text
-检定值 = d20 + 属性修正 + 技能等级 + 变异修正 + 环境修正
+检定值 = d20 + 属性修正 + 技能等级 + 特质修正 + 环境修正
 成功：检定值 >= 难度（DC，默认 12）
 大成功：d20 == 20；大失败：d20 == 1
 ```
@@ -296,7 +497,7 @@ P0 是 MVP 必须有，P1 是基座完整后下一批，P2 是明确排后。
 
 ## 5. 活世界：向 Qud 借什么、怎么借
 
-### 5.1 向 Qud 借的 4 件事
+### 5.1 向 Qud 借的 4 件事（借结构，不借内容和变异系统）
 
 1. **同构模拟**：Qud 里每个怪物和 NPC 都和玩家一样，有等级、技能、装备、派系、肢体。Ewil 也照做：不要给 NPC 写一套“假 AI”，要让 NPC 走同一套 `Health` / `Stats` / `Inventory` / `BodyPart`。
 2. **派系即行为**：Qud 有 60 多个派系，声望高低直接决定 NPC 是帮忙还是攻击。Ewil v1 只做 3 个派系，但机制要先做对。
@@ -359,7 +560,7 @@ struct EventLog {
 };
 ```
 
-- 规则：任何改变世界状态的系统都必须写一条事件。没有事件，就等于没发生。
+- 事件来源：事件日志里的条目就是 EventBus（见 3.5）处理过的事件，用同一个 `id`、同一个 `tick`，是同一批事件，不是两套。任何改变世界状态的系统都必须先经 EventBus 写一条事件。没有事件，就等于没发生。
 - 玩家行动的痕迹：烧了门 → 事件“烧门” + 地图上那扇门实体挂 `Burned` 标签 + 村民 `Memories` 里加一条。DM 不需要记住，查日志就行。
 - 回放：按 `event_id` 顺序重放，就能还原世界。存档 = 组件快照 + 事件日志，两者都要有。
 
@@ -450,8 +651,8 @@ struct ActionCommand {
 
 ### 7.1 原则（v0.3 已确认）
 
-- 生物、物品、变异、技能、派系、配方、历史模板全部是数据文件，Rust 只认 ID。
-- 主格式是 JSON，一个实体一个文件，每类一个目录：`data/creatures/`、`data/items/`、`data/mutations/`、`data/factions/`、`data/recipes/`。例如 `data/creatures/villager_blacksmith.json` 只定义铁匠一个实体。
+- 生物、物品、特质、技能、派系、配方、历史模板全部是数据文件，Rust 只认 ID。
+- 主格式是 JSON，一个实体一个文件，每类一个目录：`data/creatures/`、`data/items/`、`data/mutations/`（特质文件目录，目录名暂保留，见 7.4）、`data/factions/`、`data/recipes/`。例如 `data/creatures/villager_blacksmith.json` 只定义铁匠一个实体。
 - TOML 是可选的作者格式，不是第二套模型（见 7.6）。人手写、社区投稿可以用 TOML，运行时和 AI 生成用 JSON，两者落到同一套 Rust struct。
 - 数据文件以后也要能由 AI DM 和玩家社区来写，所以必须有模板、Schema、校验工具和例子，不能只靠口头约定（见 7.7）。
 - 加载时校验：ID 唯一、引用存在、数值在合理范围。校验失败要报错并拒绝启动，不要静默用默认值。
@@ -470,7 +671,7 @@ struct ActionCommand {
   "faction": "villagers",
   "skills": [{"id": "smithing", "level": 3}],
   "schedule": {"day": "work_at_forge", "night": "go_home"},
-  "mutations": []
+  "traits": []
 }
 ```
 
@@ -488,11 +689,13 @@ struct ActionCommand {
 }
 ```
 
-生物文件里的 `mutations` 是 `[{id, level}]` 列表，和 `skills` 同一种写法，空列表表示没有变异。
+生物文件里的 `traits` 是 `[{id, level}]` 列表，和 `skills` 同一种写法，空列表表示没有特质。
 
-### 7.4 变异数据示例（v1 只做 6 种）
+### 7.4 特质数据示例（v1 只做 6 种特质示例）
 
-v1 变异清单：`夜视`、`利爪`、`厚皮`、`心灵感应（弱）`、`喷酸（弱）`、`多臂（只能拿多一件武器）`。每种都要写清是被动还是主动、消耗什么、冷却多久。
+v1 特质清单（原变异清单，v0.5 降级为特质示例；变异不是核心系统）：`夜视`、`利爪`、`厚皮`、`心灵感应（弱）`、`喷酸（弱）`、`多臂（只能拿多一件武器）`。每种都要写清是被动还是主动、消耗什么、冷却多久。
+
+> 兼容性说明：`data/mutations/` 下的 6 个文件保留为特质示例，v0.4 兼容；目录名和文件内容暂不改，迁移到 `data/traits/` 是后续工作，不在本任务里做。数据文件里的旧字段名同理，迁移时随目录一起改。
 
 ```json
 {
@@ -570,7 +773,7 @@ night = "go_home"
 
 ---
 
-## 8. MVP 里程碑：最小闭环（v0.4 扩大版）
+## 8. MVP 里程碑：最小闭环（v0.5 扩大版；范围与 v0.4 相同）
 
 ### 8.1 闭环描述
 
@@ -580,12 +783,12 @@ night = "go_home"
 
 - 地图 1 `joppa`：60x45，一座村子（8 间房子、1 个铁匠铺、1 间旅店、1 间诊所、1 口井、1 个集市摊位、村口），村外一条路向东通往遗迹。
 - 地图 2 `red_sand_ruin`：40x30，东边遗迹（破损大厅、机器祭坛、1 件传说物品红沙权杖）。遗迹是第 5.3 节历史生成的落点：三十年前红沙之战的战场，村里从此不欢迎拾荒者。
-- 角色：1 名玩家、16 个生物（12 名村民 + 村外 3 名拾荒者 + 遗迹里 1 名机械教团隐士），3 个派系全部在跑，6 种变异至少 3 个 NPC 真正带着，物品 10 件。
+- 角色：1 名玩家、16 个生物（12 名村民 + 村外 3 名拾荒者 + 遗迹里 1 名机械教团隐士），3 个派系全部在跑，6 种特质至少 3 个 NPC 真正带着，物品 10 件。
 - 时间：从第 1 天早上 8 点开始，玩家可以自由行动 5 个游戏日（720 tick）。
 
 生物名册（数据在 `data/creatures/`，一个实体一个文件）：
 
-| 生物 | 地图 | 派系 | 变异 |
+| 生物 | 地图 | 派系 | 特质 |
 |---|---|---|---|
 | 铁匠阿木 `villager_blacksmith` | joppa | villagers | 无 |
 | 商人阿珍 `villager_merchant` | joppa | villagers | 无 |
@@ -604,7 +807,7 @@ night = "go_home"
 | 拾荒者酸水 `scavenger_3` | joppa（村外） | scavengers | 喷酸（弱） |
 | 隐士锈眼 `mechanist_hermit` | red_sand_ruin | mechanists | 心灵感应（弱） |
 
-物品（数据在 `data/items/`，共 10 件）：铁剑、铁矛、皮甲、木盾、伤药膏、水囊、烤面包、开锁器、机器零件在村子里或拾荒者身上，红沙权杖只在遗迹里。派系和变异数据在 `data/factions/`（3 个）和 `data/mutations/`（6 个）。
+物品（数据在 `data/items/`，共 10 件）：铁剑、铁矛、皮甲、木盾、伤药膏、水囊、烤面包、开锁器、机器零件在村子里或拾荒者身上，红沙权杖只在遗迹里。派系和特质数据在 `data/factions/`（3 个）和 `data/mutations/`（6 个，目录名暂保留，见 7.4）。
 
 初始放置不在生物文件里：生物文件没有地图字段，放置由本节场景表决定。村民出生在 joppa，拾荒者出生在 joppa 村外，隐士出生在 red_sand_ruin。TOML 不为每个新文件各建一份，只保留 `data/examples/villager_blacksmith.toml` 作为 JSON/TOML 等价证明，其余文件用转换工具生成。
 
@@ -615,7 +818,7 @@ night = "go_home"
 3. 派系连锁：玩家帮村民打跑拾荒者，村民声望 +10，拾荒者声望 -10，商人价格下降；玩家把机器零件献给隐士，机械教团声望 +15，隐士告诉玩家权杖的位置。
 4. 跨地图旅行：玩家从 joppa 村东出口走到 red_sand_ruin，`Position.map` 变化、快照更新、状态不丢；再走回来也一样。隐士在玩家离开又回来之后还记得玩家。
 5. 遗迹与传说物品：玩家在遗迹里找到红沙权杖，事件日志记一条“发现红沙权杖”；拿着权杖回村，村长石爷认出它并讲出红沙之战的故事。声望不够时隐士会阻止玩家拿走权杖。
-6. 变异在起作用：夜鹰夜里视野更远，石头受击伤害更低，爪子的徒手伤害更高。至少 3 个带变异的 NPC 要在检定和战斗里表现出不同。
+6. 特质在起作用：夜鹰夜里视野更远，石头受击伤害更低，爪子的徒手伤害更高。至少 3 个带特质的 NPC 要在检定和战斗里表现出不同。
 7. 交易随声望变：商人价格按第 5.2 节的声望档位变化，声望低时拒绝交易和任务。
 8. 玩家第二天、第五天再去，铁匠还记得（存档重载后也记得），遗迹里的权杖状态也记得。
 
@@ -640,7 +843,7 @@ night = "go_home"
 5. `test_cross_map`：从 joppa 走到 red_sand_ruin 再走回来，断言 `Position.map` 变化两次、隐士记忆还在、事件日志有两次跨地图事件。
 6. `test_faction_chain`：帮村民打跑拾荒者，断言村民声望 +10、拾荒者声望 -10、商人价格下降；献机器零件，断言机械教团声望 +15。
 7. `test_ruin`：拿起红沙权杖，断言事件日志有记录、权杖归属是玩家；回村见村长，断言村长讲出红沙之战（事件或对话记录可查）。
-8. `test_mutation`：夜里断言夜鹰的视野比普通村民远；断言石头的受击伤害比同条件下的铁柱低。
+8. `test_trait`：夜里断言夜鹰的视野比普通村民远；断言石头的受击伤害比同条件下的铁柱低。
 
 ### 8.5 MVP 之后先做什么（按顺序）
 
