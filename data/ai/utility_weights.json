@@ -1,1 +1,90 @@
-{"drift":{"events":[{"cap":0.5,"delta":0.05,"trigger":"attacked","weight":"w_memory"},{"cap":0.5,"delta":0.03,"trigger":"helped_by_other","weight":"w_reputation"},{"cap":0.5,"delta":0.05,"trigger":"nearly_starved","weight":"w_need"},{"cap":0.5,"delta":-0.03,"trigger":"goal_unmet_for_3_days","weight":"w_goal"}],"max_single_step":0.05,"note":"Weights live in the UtilityWeights component, saved with the world. Every drift is logged as an event, so it can be inspected and replayed. After any drift the five weights are renormalized to sum to 1.","renormalize_to":1.0},"id":"utility_weights","meanings":{"w_goal":"How close this action gets the entity to its current goal (e.g. a hunter's goal 'catch prey today' makes hunting score high).","w_memory":"Whether memory pushes toward or away from this action (attacked by someone -> revenge / avoidance scores high; helped by someone -> helping them scores high).","w_need":"How urgently this action relieves a need (hunger 90 -> eating scores near 1; hunger 10 -> eating scores low).","w_reputation":"How this action affects reputation (helping a friendly faction scores high; offending one scores low).","w_schedule":"Whether it is the right time for this action (working at the forge by day scores high; at midnight it scores low)."},"player_cultivation":{"note":"DRAFT, not yet decided by the user (open item from the 2026-11-18 v1.1 review). Principle is decided: no safety bound, no forbidden action kinds; offline takeover uses the same utility AI and the player's own cultivated weights. Only the counting rule below is proposed.","proposal":{"action_class_links":[{"action_class":"combat","weight":"w_memory"},{"action_class":"trade","weight":"w_reputation"},{"action_class":"help_other","weight":"w_reputation"},{"action_class":"ruin_exploration","weight":"w_goal"},{"action_class":"eat_drink_rest_on_schedule","weight":"w_need"}],"rule":"While the player is online, every 10th action in one class triggers one drift step of +0.02 on the linked weight (same caps, renormalization and event logging as NPC drift above). The step is small on purpose: a player who fights all day still only drifts after sustained play, never from one fight.","status":"draft_awaiting_user_decision"}},"score":"score(action) = w_need * need(action) + w_memory * memory(action) + w_reputation * reputation(action) + w_goal * goal(action) + w_schedule * schedule(action). Each term is normalized to 0..1 before weighting.","source_doc":"ecs-architecture.md v1.0/v1.1, section 4.2","version":1,"weights":{"w_goal":0.2,"w_memory":0.2,"w_need":0.35,"w_reputation":0.15,"w_schedule":0.1}}
+{
+  "drift": {
+    "note": "Superseded in v1.2: weights do not drift by counting behavior. Only Personality drifts, per the personality.drift rules above. The old weight-drift table is removed, not kept as an alternative."
+  },
+  "id": "utility_weights",
+  "meanings": {
+    "w_goal": "How close this action gets the entity to its current goal (e.g. a hunter's goal 'catch prey today' makes hunting score high).",
+    "w_memory": "Whether memory pushes toward or away from this action (attacked by someone -> revenge / avoidance scores high; helped by someone -> helping them scores high).",
+    "w_need": "How urgently this action relieves a need (hunger 90 -> eating scores near 1; hunger 10 -> eating scores low).",
+    "w_reputation": "How this action affects reputation (helping a friendly faction scores high; offending one scores low).",
+    "w_schedule": "Whether it is the right time for this action (working at the forge by day scores high; at midnight it scores low).",
+    "w_personality": "How well this action matches the entity's Personality component (bravery, aggression, curiosity, greed, sociability, caution). This is the root-cause term: behavior is the result, not the cause."
+  },
+  "score": "score(action) = w_need * need(action) + w_memory * memory(action) + w_reputation * reputation(action) + w_goal * goal(action) + w_schedule * schedule(action) + w_personality * personality(action). Each term is normalized to 0..1 before weighting.",
+  "source_doc": "ecs-architecture.md v1.2, section 4.2",
+  "version": 2,
+  "weights": {
+    "w_need": 0.3,
+    "w_memory": 0.15,
+    "w_reputation": 0.15,
+    "w_goal": 0.15,
+    "w_schedule": 0.1,
+    "w_personality": 0.15
+  },
+  "personality": {
+    "component": "Personality { bravery, aggression, curiosity, greed, sociability, caution }, each 0-10, initial values in creature data",
+    "action_affinities": [
+      {
+        "action": "attack",
+        "eats": "bravery + aggression"
+      },
+      {
+        "action": "flee",
+        "eats": "caution - bravery"
+      },
+      {
+        "action": "explore_ruin",
+        "eats": "curiosity + bravery - caution"
+      },
+      {
+        "action": "trade",
+        "eats": "greed + sociability"
+      },
+      {
+        "action": "help_other",
+        "eats": "sociability"
+      },
+      {
+        "action": "steal",
+        "eats": "greed - caution"
+      }
+    ],
+    "drift": {
+      "cap": [
+        0,
+        10
+      ],
+      "max_single_step": 1,
+      "note": "Personality drifts slowly and only after major events, never by counting how often an action was done. Counting behavior is circular: the trait is the cause, the behavior is the result.",
+      "events": [
+        {
+          "delta": {
+            "bravery": -1,
+            "caution": 1
+          },
+          "trigger": "nearly_died"
+        },
+        {
+          "delta": {
+            "bravery": 1
+          },
+          "trigger": "won_even_fight"
+        },
+        {
+          "delta": {
+            "sociability": -1
+          },
+          "trigger": "betrayed_by_trusted_person"
+        },
+        {
+          "delta": {
+            "curiosity": 1
+          },
+          "trigger": "first_ruin_treasure_found"
+        }
+      ]
+    },
+    "note": "Player and NPC share the same rule. A player's Personality is set at character creation (data, player-chosen or random) and drifts by the same major-event rules; offline takeover uses that same Personality, so offline behavior mirrors the player's own traits."
+  }
+}
