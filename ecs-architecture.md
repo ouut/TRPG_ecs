@@ -187,13 +187,78 @@ World（单例实体，挂 WorldState）
 | 组件 | 字段（Rust） | 说明 |
 |---|---|---|
 | `Schedule` | `day_job: String, night_home: String, wake_tick: i32, sleep_tick: i32` | 白天去哪、晚上回哪。MVP 的核心组件 |
-| `Personality` | `bravery: i32, aggression: i32, curiosity: i32, greed: i32, sociability: i32, caution: i32` | 个性特征，每项 0–10，数据里给初始值。效用 AI 打分的根因，见第 5 节。注意：这不是 `Trait`（身体特质，如夜视、利爪），`Personality` 是认知层的组件 |
+| `Personality` | 48 个面，每项 `i32` 0–10，见 §2.5.1 的分组表 | 个性特征，数据里给初始值。效用 AI 打分的根因，见第 5 节。注意：这不是 `Trait`（身体特质，如夜视、利爪），`Personality` 是认知层的组件 |
 | `AIState` | `state: AIStateKind, target: Entity, state_tick: i32` | 当前状态：巡逻 / 工作 / 吃饭 / 睡觉 / 战斗 / 逃跑 / 跟随 |
 | `Perception` | `sight_range: i32` | 视野范围。只做曼哈顿距离 + 视线遮挡简化版 |
 | `Goal` | `goal_id: String, target: Option<Entity>, priority: i32` | 长期目标（如“今天抓到猎物”、“攒够钱买铁剑”）。`DecisionSystem` 在目标变化时写（目标完成、被大事件打断、日程切换），效用 AI 的 `w_goal` 项读它。没有目标时 `goal_id` 为空，`goal` 项按中性 0.5 算 |
 | `InputCommand` | `kind: ActionKind, target: Option<Entity>, x: i32, y: i32, tick: i32` | 玩家输入的一次命令，由输入层写（键盘、DM 翻译出的 `ActionCommand` 都先落到这里）。`DecisionSystem` 只读不写，只合并本 tick 的 `InputCommand`（按 `tick` 字段匹配）；输入层在下一个 tick 开始时清除已消费的 `InputCommand` |
 | `Intent` | `kind: ActionKind, target: Option<Entity>, x: i32, y: i32` | 本 tick 要执行的意图。唯一写者是 `DecisionSystem`：有 `InputCommand` 就按它写，没有就按效用 AI 打分写。`ActionSystem` 在 Act phase 消费后，`DecisionSystem` 在下一个 Decide phase 开始时清除旧的 `Intent` 再写新的 |
 | `Memory` | 见第 2.8 节 | 不是一个大组件，是一组关系 + 事件引用 |
+
+### 2.5.1 个性：48 个面（仿《矮人要塞》，不照搬）
+
+仿《矮人要塞》的思路：一个人不是三五条标签，而是一组连续的面，每项 0–10，所有人每项都有值，值不同人才不同。但不照搬它的约 50 个面：矮人要塞的面是 0–100，另有一套信念层，很多面在游戏里没有对应的行为；Ewil 只要 48 个面，分 8 组，每组 6 个，全部落在 0–10，每项都必须有至少一个消费它的行动亲和度或系统规则（见第 5.1 节）——**没有消费者的面不许加**。信念层不做：忠诚、诚实这些直接就是面，不另起一层。
+
+| 组 | 面（id） | 中文 | 意思（一句话） |
+|---|---|---|---|
+| A 冲突与勇气 | `bravery` | 胆量 | 面对危险敢不敢上 |
+| A 冲突与勇气 | `aggression` | 好斗 | 愿不愿意主动挑起冲突 |
+| A 冲突与勇气 | `cruelty` | 残忍 | 是否以他人的痛苦为乐 |
+| A 冲突与勇气 | `vengefulness` | 记仇 | 受了伤害记不记、报不报复 |
+| A 冲突与勇气 | `assertiveness` | 强势 | 社交中敢不敢坚持自己的主张 |
+| A 冲突与勇气 | `caution` | 谨慎 | 行动前先评估风险 |
+| B 情绪 | `cheerfulness` | 开朗 | 平时的心情底色亮不亮 |
+| B 情绪 | `anxiety` | 焦虑 | 平时容不容易紧张不安 |
+| B 情绪 | `anger` | 易怒 | 脾气一点就着还是很难动气 |
+| B 情绪 | `stress_vulnerability` | 抗压弱 | 压力大了会不会垮（值越高越容易垮） |
+| B 情绪 | `hopefulness` | 乐观 | 对未来是盼好还是盼坏 |
+| B 情绪 | `emotionality` | 情绪化 | 情绪波动大不大、表露多不多 |
+| C 社交 | `sociability` | 合群 | 想不想跟人在一起 |
+| C 社交 | `friendliness` | 友善 | 对人暖不暖、愿不愿意亲近 |
+| C 社交 | `trust` | 信任 | 愿不愿意相信别人 |
+| C 社交 | `politeness` | 礼貌 | 讲不讲规矩、客不客气 |
+| C 社交 | `gratitude` | 感恩 | 记不记得别人对自己的好 |
+| C 社交 | `humor` | 幽默 | 爱不爱开玩笑、讲笑话 |
+| D 欲望 | `greed` | 贪婪 | 想要更多的财富 |
+| D 欲望 | `ambition` | 野心 | 想要更高的地位和权力 |
+| D 欲望 | `vanity` | 虚荣 | 想要别人的赞美和注目 |
+| D 欲望 | `envy` | 嫉妒 | 想要别人手里有的东西 |
+| D 欲望 | `love_propensity` | 多情 | 容不容易动情、依恋别人 |
+| D 欲望 | `lust` | 欲望 | 生理欲望强不强 |
+| E 品德 | `altruism` | 利他 | 愿不愿意为别人付出 |
+| E 品德 | `honesty` | 诚实 | 说不说真话 |
+| E 品德 | `loyalty` | 忠诚 | 对派系、师父、朋友守不守 |
+| E 品德 | `dutifulness` | 尽责 | 守不守自己的职责和岗位 |
+| E 品德 | `tolerance` | 宽容 | 受了冒犯放不放得下 |
+| E 品德 | `orderliness` | 条理 | 喜不喜欢把东西和日子收拾得井井有条 |
+| F 认知 | `curiosity` | 好奇 | 想不想知道没见过的东西 |
+| F 认知 | `imagination` | 想象力 | 脑子里能不能长出不存在的东西 |
+| F 认知 | `abstract_thinking` | 抽象思维 | 喜不喜欢想道理、想规律 |
+| F 认知 | `artistic` | 艺术感 | 对美、音乐、造型敏不敏感 |
+| F 认知 | `perfectionism` | 完美主义 | 做东西容不容得下瑕疵 |
+| F 认知 | `obsessiveness` | 执着 | 一件事能不能放下，还是反复琢磨 |
+| G 意志与工作 | `diligence` | 勤奋 | 干活卖不卖力 |
+| G 意志与工作 | `perseverance` | 毅力 | 遇到困难半途而废还是咬牙挺住 |
+| G 意志与工作 | `patience` | 耐心 | 等得起、磨得起，还是急着要结果 |
+| G 意志与工作 | `singlemindedness` | 专注 | 一次只盯一件事，还是三心二意 |
+| G 意志与工作 | `thoughtfulness` | 深思熟虑 | 做决定之前想不想清楚再动手 |
+| G 意志与工作 | `activity` | 活力 | 闲不闲得住，精力旺不旺 |
+| H 自我与享乐 | `confidence` | 自信 | 信不信自己能办成 |
+| H 自我与享乐 | `pride` | 自尊 | 在不在乎自己的脸面 |
+| H 自我与享乐 | `independence` | 自主 | 愿不愿意自己拿主意、自己过 |
+| H 自我与享乐 | `excitement_seeking` | 求刺激 | 想不想找新鲜、找冒险 |
+| H 自我与享乐 | `immoderation` | 放纵 | 有了好东西克不克制得住 |
+| H 自我与享乐 | `wastefulness` | 浪费 | 花钱、花东西大不大手大脚 |
+
+**正交说明（看着像的几对，区别在这）：**
+
+- `bravery`（面对危险敢不敢上）vs `confidence`（信不信自己能办成）：胆子大的人敢进遗迹，未必信自己打得赢；自信的人信自己手艺好，未必敢进危险地方。攻击吃胆量，做买卖、吹牛吃自信。
+- `aggression`（主动挑起冲突）vs `cruelty`（以他人痛苦为乐）vs `anger`（脾气一点就着）vs `assertiveness`（社交中坚持主张）：好斗是“想打架”，残忍是“打赢了还想折磨”，易怒是“被惹了就炸”，强势是“谈判桌上不让步”。四个吃不同的行动：攻击吃好斗，折磨吃残忍，发火吃易怒，带头、争地位吃强势。
+- `sociability`（想不想跟人在一起）vs `friendliness`（对人暖不暖）：合群是“想去集市”，友善是“去了对人笑脸相迎”。独居的隐士合群低，但对上门的人未必冷脸；拾荒者头目合群不低，对外人可一点不友善。
+- `greed`（想要更多财富）vs `ambition`（想要地位权力）vs `vanity`（想要赞美注目）vs `envy`（想要别人手里的东西）：贪婪吃交易和囤积，野心吃带头和争地位，虚荣吃炫耀，嫉妒吃觊觎和偷窃——四种“想要”要的东西不一样。
+- `diligence`（干活卖力）vs `perseverance`（不半途而废）vs `patience`（等得起）：勤奋是“一天打十个小时铁”，毅力是“打坏了重打不放弃”，耐心是“等火候、等庄稼长”。做活吃勤奋，长期任务吃毅力 + 耐心。
+- `cheerfulness`（心情底色）vs `hopefulness`（对未来的预期）：开朗是“今天心情好”，乐观是“觉得明天会好”。一个人在绝境里可以不开朗但仍抱希望，也可以天天嘻嘻哈哈却觉得前途无望。
+- `love_propensity`（动情、依恋）vs `lust`（生理欲望）：多情是“想跟人在一起”，欲望是身体层面的冲动。求偶吃多情，调情吃欲望 + 自信。
 
 **（7）关系与社会**
 
@@ -579,13 +644,67 @@ fn get_available_actions(entity: Entity, state: &WorldState) -> Vec<CandidateAct
 
 ### 5.1 行为是结果，不是原因，落脚点是组件
 
-“常打架所以战斗分变高”是因果倒置：一个人常打架，不是因为打过架，而是因为胆子大、好斗。胆子大、好斗对应的就是个性特征，落脚点是组件 `Personality`：`bravery`（胆量）、`aggression`（好斗）、`curiosity`（好奇）、`greed`（贪婪）、`sociability`（合群）、`caution`（谨慎），每项 0–10，在生物数据里给初始值。打分时每个行动在数据里写清它吃哪些个性项：攻击吃 `bravery + aggression`，逃跑吃 `caution - bravery`，探遗迹吃 `curiosity + bravery - caution`，交易吃 `greed + sociability`，帮忙吃 `sociability`，偷窃吃 `greed - caution`。胆子大好斗的人，攻击和探险的分天然就高，不是因为他打过架才变高；打架多是这个原因长出来的结果。
+“常打架所以战斗分变高”是因果倒置：一个人常打架，不是因为打过架，而是因为胆子大、好斗。胆子大、好斗对应的就是个性特征，落脚点是组件 `Personality`：48 个面（见第 2.5.1 节），每项 0–10，在生物数据里给初始值。打分时每个行动在数据里写清它吃哪些个性项。亲和度是打分的根因项，规则是：**每个面至少被一个行动亲和度或一条系统规则消费**，没有消费者的面不许存在。下面是第一版草案值（`eats` 后面的 `+` 是加分、`-` 是减分；写 `low X` 的意思是该项越低分越高，即吃 `10 - X`）：
+
+| 候选行动 | 吃哪些面 | 对应的 `ActionKind` / 系统 |
+|---|---|---|
+| 攻击 `attack` | `bravery + aggression` | `Attack` |
+| 逃跑 `flee` | `caution - bravery` | `Move`（逃离） |
+| 探遗迹 `explore_ruin` | `curiosity + bravery - caution` | `Move` |
+| 交易 `trade` | `greed + sociability` | `Trade` |
+| 帮忙 `help_other` | `sociability` | `Talk` / `GiveItem` |
+| 偷窃 `steal` | `greed - caution` | `PickUp`（偷拿） |
+| 做活 `work_craft` | `diligence + perseverance + perfectionism` | `Craft` |
+| 坚持长期任务 `long_task` | `patience + perseverance + singlemindedness` | `Craft` / `Dig` / `Plant` |
+| 精修返工 `refine` | `obsessiveness + perfectionism - patience` | `Craft` |
+| 求偶 `romance` | `love_propensity + friendliness` | `Talk` |
+| 调情 `flirt` | `lust + confidence` | `Talk` |
+| 开玩笑 / 闲聊 `joke` | `humor + sociability + cheerfulness` | `Talk` |
+| 原谅 `forgive` | `tolerance + gratitude + trust` | `Talk` |
+| 报复 `revenge` | `vengefulness + anger - tolerance` | `Attack` |
+| 背叛 `betray` | `low honesty + low loyalty + ambition` | `Talk` / `Trade` |
+| 说谎 `lie` | `low honesty + confidence` | `Talk` |
+| 坦白 `confess` | `honesty + bravery - pride` | `Talk` |
+| 折磨 / 羞辱 `torment` | `cruelty + aggression - altruism` | `Attack` |
+| 发火 `lash_out` | `anger + aggression - patience` | `Talk` / `Attack` |
+| 分食分钱 `share` | `altruism + friendliness - greed` | `GiveItem` |
+| 安慰 `comfort` | `friendliness + altruism + emotionality` | `Talk` |
+| 打招呼 / 问好 `greet` | `politeness + friendliness + trust` | `Talk` |
+| 道谢 `thank` | `gratitude + politeness` | `Talk` |
+| 信任对方 `trust_other` | `trust + sociability - caution` | `Talk` / `Trade` |
+| 倾诉 `confide` | `trust + friendliness` | `Talk` |
+| 保守秘密 `keep_secret` | `caution + loyalty` | 系统规则（不主动说） |
+| 囤积 `hoard` | `greed + orderliness - wastefulness` | `PickUp` / `Trade` |
+| 挥霍 `spend_lavishly` | `wastefulness + immoderation + vanity` | `Trade` |
+| 节俭 `be_frugal` | `caution + orderliness - wastefulness` | `Trade`（不买） |
+| 觊觎 `covet` | `envy + greed` | `Talk` / `PickUp`（盯着别人的东西） |
+| 炫耀 `show_off` | `vanity + pride + confidence` | `Talk` |
+| 带头 / 争地位 `lead` | `ambition + pride + assertiveness` | `Talk` |
+| 争地位 `seek_status` | `ambition + assertiveness + confidence` | `Talk` / `Trade` |
+| 守岗 `stay_at_post` | `loyalty + dutifulness + orderliness` | `Move`（不离开岗位） |
+| 听命 `obey` | `dutifulness + loyalty - independence` | 系统规则（服从命令） |
+| 独自出走 `wander_off` | `independence + curiosity - dutifulness` | `Move` |
+| 独处 `solitude` | `independence + thoughtfulness - sociability` | `Rest` / `Wait` |
+| 求刺激 `seek_thrills` | `excitement_seeking + bravery - caution` | `Move` / `Attack` |
+| 找新鲜 `seek_novelty` | `curiosity + excitement_seeking - caution` | `Move` |
+| 享乐休息 `enjoy_leisure` | `cheerfulness + humor + excitement_seeking` | `Rest` |
+| 休息 `rest` | `low activity + stress_vulnerability` | `Rest` |
+| 连轴转 `overwork` | `diligence + activity` | `Craft` / `Dig`（不停） |
+| 做艺术 `create_art` | `artistic + imagination + perfectionism` | `Craft` |
+| 空想 / 冥想 `daydream` | `imagination + abstract_thinking + thoughtfulness` | `Wait` |
+| 教人 / 学东西 `teach_learn` | `thoughtfulness + abstract_thinking + patience` | `Talk` |
+| 保持镇定 `hold_steady` | `hopefulness + cheerfulness - anxiety` | 系统规则（危机中不逃） |
+| 恐慌 `panic` | `stress_vulnerability + anxiety` | 系统规则（压力事件触发，非打分行动） |
+| 情绪爆发 `emotional_outburst` | `emotionality + stress_vulnerability` | 系统规则（大事件后） |
+| 忍耐困苦 `endure` | `perseverance + patience + hopefulness` | 系统规则（饥饿、寒冷中继续干活） |
+
+胆子大好斗的人，攻击和探险的分天然就高，不是因为他打过架才变高；打架多是这个原因长出来的结果。亲和度只管“想不想做”，能不能做由 `get_available_actions`（见第 5.0 节）说了算——想偷但附近没东西，偷窃根本进不了候选列表。
 
 **分数和权重必须写在数据里：** 权重、每一项的归一化方式、每个行动吃哪些个性项、吃多少，都在 `data/ai/utility_weights.json`（全局默认值）里，每实体可在自己的数据文件里覆写自己的权重和个性初始值。改权重改数据，不改代码；改完重启世界即生效，跑模拟时随时调。
 
 ### 5.2 个性本身也是活的，但漂得慢、只在大事件后动
 
-`Personality` 存在组件里，随存档一起保存。日常小事不改个性，只有大事件才动，每次最多 ±1，有上下限 0–10，变动记一条事件，可查、可回放。第一版草案值：差点死一次 `bravery -1，caution +1`；打赢一场势均力敌的架 `bravery +1`；被信任的人背叛一次 `sociability -1`；第一次发现遗迹宝藏 `curiosity +1`。个性是长出来的，不是写死的，也不是按“做了几次”数出来的——数行为次数是循环论证，个性特征才是原因。
+`Personality` 存在组件里，随存档一起保存。日常小事不改个性，只有大事件才动，每次最多 ±1，有上下限 0–10，变动记一条事件，可查、可回放。第一版草案值：差点死一次 `bravery -1，caution +1`；打赢一场势均力敌的架 `bravery +1`；被信任的人背叛一次 `sociability -1`；第一次发现遗迹宝藏 `curiosity +1`。新面也一样，只在大事件后动：被信任的人背叛一次 `trust -1`；一整个季节没休息一直干活 `diligence +1`；当众受辱一次 `pride -1，vengefulness +1`；做出一件传世杰作 `artistic +1，confidence +1`；亲人死去 `hopefulness -1，emotionality +1`。个性是长出来的，不是写死的，也不是按“做了几次”数出来的——数行为次数是循环论证，个性特征才是原因。
 
 ### 5.3 玩家下线接管与玩家养成的个性
 
@@ -822,7 +941,7 @@ struct ActionCommand {
   "faction": "villagers",
   "health": 14,
   "stats": {"str": 12, "dex": 8, "int": 10, "wil": 10},
-  "personality": {"bravery": 6, "aggression": 4, "curiosity": 3, "greed": 5, "sociability": 6, "caution": 5},
+  "personality": {"bravery": 6, "aggression": 3, "curiosity": 4, "greed": 5, "sociability": 6, "caution": 6},
   "skills": [{"id": "smithing", "level": 3}],
   "traits": [],
   "schedule": {"day": "work_at_forge", "night": "go_home"},
@@ -830,7 +949,7 @@ struct ActionCommand {
 }
 ```
 
-生物文件里的 `traits` 是 `[{id, level}]` 列表，和 `skills` 同一种写法，空列表表示没有特质。初始放置不在生物文件里：生物文件没有地图字段，放置由第 10 节的场景表决定。
+生物文件里的 `traits` 是 `[{id, level}]` 列表，和 `skills` 同一种写法，空列表表示没有特质。初始放置不在生物文件里：生物文件没有地图字段，放置由第 10 节的场景表决定。上例的 `personality` 只写了前 6 个面做示例——真实数据文件里是完整的 48 个面（见第 2.5.1 节），加载时校验缺一不可。
 
 注意上例的 `"health": 14` 是初始当前血量，不是 `max_hp`。`max_hp` 由器官公式算（健康时约 20，见第 2.6 节），不写在生物文件里；`health` 必须小于等于按公式算出的 `max_hp`，加载时校验，超了拒绝启动。
 

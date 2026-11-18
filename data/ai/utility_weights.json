@@ -7,7 +7,7 @@
     "w_goal": "How close this action gets the entity to its current goal (e.g. a hunter's goal 'catch prey today' makes hunting score high).",
     "w_memory": "Whether memory pushes toward or away from this action (attacked by someone -> revenge / avoidance scores high; helped by someone -> helping them scores high).",
     "w_need": "How urgently this action relieves a need (hunger 90 -> eating scores near 1; hunger 10 -> eating scores low).",
-    "w_personality": "How well this action matches the entity's Personality component (bravery, aggression, curiosity, greed, sociability, caution). This is the root-cause term: behavior is the result, not the cause.",
+    "w_personality": "How well this action matches the entity's Personality component (48 facets in 8 groups, see personality.facets). This is the root-cause term: behavior is the result, not the cause.",
     "w_reputation": "How this action affects reputation (helping a friendly faction scores high; offending one scores low).",
     "w_schedule": "Whether it is the right time for this action (working at the forge by day scores high; at midnight it scores low)."
   },
@@ -44,9 +44,181 @@
       {
         "action": "steal",
         "eats": "greed - caution"
+      },
+      {
+        "action": "work_craft",
+        "eats": "diligence + perseverance + perfectionism"
+      },
+      {
+        "action": "long_task",
+        "eats": "patience + perseverance + singlemindedness"
+      },
+      {
+        "action": "refine",
+        "eats": "obsessiveness + perfectionism - patience"
+      },
+      {
+        "action": "romance",
+        "eats": "love_propensity + friendliness"
+      },
+      {
+        "action": "flirt",
+        "eats": "lust + confidence"
+      },
+      {
+        "action": "joke",
+        "eats": "humor + sociability + cheerfulness"
+      },
+      {
+        "action": "forgive",
+        "eats": "tolerance + gratitude + trust"
+      },
+      {
+        "action": "revenge",
+        "eats": "vengefulness + anger - tolerance"
+      },
+      {
+        "action": "betray",
+        "eats": "(10 - honesty) + (10 - loyalty) + ambition"
+      },
+      {
+        "action": "lie",
+        "eats": "(10 - honesty) + confidence"
+      },
+      {
+        "action": "confess",
+        "eats": "honesty + bravery - pride"
+      },
+      {
+        "action": "torment",
+        "eats": "cruelty + aggression - altruism"
+      },
+      {
+        "action": "lash_out",
+        "eats": "anger + aggression - patience"
+      },
+      {
+        "action": "share",
+        "eats": "altruism + friendliness - greed"
+      },
+      {
+        "action": "comfort",
+        "eats": "friendliness + altruism + emotionality"
+      },
+      {
+        "action": "greet",
+        "eats": "politeness + friendliness + trust"
+      },
+      {
+        "action": "thank",
+        "eats": "gratitude + politeness"
+      },
+      {
+        "action": "trust_other",
+        "eats": "trust + sociability - caution"
+      },
+      {
+        "action": "confide",
+        "eats": "trust + friendliness"
+      },
+      {
+        "action": "keep_secret",
+        "eats": "caution + loyalty"
+      },
+      {
+        "action": "hoard",
+        "eats": "greed + orderliness - wastefulness"
+      },
+      {
+        "action": "spend_lavishly",
+        "eats": "wastefulness + immoderation + vanity"
+      },
+      {
+        "action": "be_frugal",
+        "eats": "caution + orderliness - wastefulness"
+      },
+      {
+        "action": "covet",
+        "eats": "envy + greed"
+      },
+      {
+        "action": "show_off",
+        "eats": "vanity + pride + confidence"
+      },
+      {
+        "action": "lead",
+        "eats": "ambition + pride + assertiveness"
+      },
+      {
+        "action": "seek_status",
+        "eats": "ambition + assertiveness + confidence"
+      },
+      {
+        "action": "stay_at_post",
+        "eats": "loyalty + dutifulness + orderliness"
+      },
+      {
+        "action": "obey",
+        "eats": "dutifulness + loyalty - independence"
+      },
+      {
+        "action": "wander_off",
+        "eats": "independence + curiosity - dutifulness"
+      },
+      {
+        "action": "solitude",
+        "eats": "independence + thoughtfulness - sociability"
+      },
+      {
+        "action": "seek_thrills",
+        "eats": "excitement_seeking + bravery - caution"
+      },
+      {
+        "action": "seek_novelty",
+        "eats": "curiosity + excitement_seeking - caution"
+      },
+      {
+        "action": "enjoy_leisure",
+        "eats": "cheerfulness + humor + excitement_seeking"
+      },
+      {
+        "action": "rest",
+        "eats": "(10 - activity) + stress_vulnerability"
+      },
+      {
+        "action": "overwork",
+        "eats": "diligence + activity"
+      },
+      {
+        "action": "create_art",
+        "eats": "artistic + imagination + perfectionism"
+      },
+      {
+        "action": "daydream",
+        "eats": "imagination + abstract_thinking + thoughtfulness"
+      },
+      {
+        "action": "teach_learn",
+        "eats": "thoughtfulness + abstract_thinking + patience"
+      },
+      {
+        "action": "hold_steady",
+        "eats": "hopefulness + cheerfulness - anxiety"
+      },
+      {
+        "action": "panic",
+        "eats": "stress_vulnerability + anxiety"
+      },
+      {
+        "action": "emotional_outburst",
+        "eats": "emotionality + stress_vulnerability"
+      },
+      {
+        "action": "endure",
+        "eats": "perseverance + patience + hopefulness"
       }
     ],
-    "component": "Personality { bravery, aggression, curiosity, greed, sociability, caution }, each 0-10, initial values in creature data",
+    "component": "Personality { 48 facets in 8 groups of 6, each 0-10, initial values in creature data; see facets and doc section 2.5.1 }",
     "drift": {
       "cap": [
         0,
@@ -77,16 +249,116 @@
             "curiosity": 1
           },
           "trigger": "first_ruin_treasure_found"
+        },
+        {
+          "trigger": "betrayed_by_trusted_person",
+          "delta": {
+            "trust": -1
+          }
+        },
+        {
+          "trigger": "worked_a_whole_season_without_rest",
+          "delta": {
+            "diligence": 1
+          }
+        },
+        {
+          "trigger": "publicly_humiliated",
+          "delta": {
+            "pride": -1,
+            "vengefulness": 1
+          }
+        },
+        {
+          "trigger": "created_a_masterwork",
+          "delta": {
+            "artistic": 1,
+            "confidence": 1
+          }
+        },
+        {
+          "trigger": "lost_a_loved_one",
+          "delta": {
+            "hopefulness": -1,
+            "emotionality": 1
+          }
         }
       ],
       "max_single_step": 1,
       "note": "Personality drifts slowly and only after major events, never by counting how often an action was done. Counting behavior is circular: the trait is the cause, the behavior is the result."
     },
-    "note": "Player and NPC share the same rule. A player's Personality is set at character creation (data, player-chosen or random) and drifts by the same major-event rules; offline takeover uses that same Personality, so offline behavior mirrors the player's own traits."
+    "note": "Player and NPC share the same rule. A player's Personality is set at character creation (data, player-chosen or random) and drifts by the same major-event rules; offline takeover uses that same Personality, so offline behavior mirrors the player's own traits.",
+    "facets": {
+      "A_conflict_and_courage": [
+        "bravery",
+        "aggression",
+        "cruelty",
+        "vengefulness",
+        "assertiveness",
+        "caution"
+      ],
+      "B_emotion": [
+        "cheerfulness",
+        "anxiety",
+        "anger",
+        "stress_vulnerability",
+        "hopefulness",
+        "emotionality"
+      ],
+      "C_social": [
+        "sociability",
+        "friendliness",
+        "trust",
+        "politeness",
+        "gratitude",
+        "humor"
+      ],
+      "D_desire": [
+        "greed",
+        "ambition",
+        "vanity",
+        "envy",
+        "love_propensity",
+        "lust"
+      ],
+      "E_virtue": [
+        "altruism",
+        "honesty",
+        "loyalty",
+        "dutifulness",
+        "tolerance",
+        "orderliness"
+      ],
+      "F_cognition": [
+        "curiosity",
+        "imagination",
+        "abstract_thinking",
+        "artistic",
+        "perfectionism",
+        "obsessiveness"
+      ],
+      "G_will_and_work": [
+        "diligence",
+        "perseverance",
+        "patience",
+        "singlemindedness",
+        "thoughtfulness",
+        "activity"
+      ],
+      "H_self_and_pleasure": [
+        "confidence",
+        "pride",
+        "independence",
+        "excitement_seeking",
+        "immoderation",
+        "wastefulness"
+      ]
+    },
+    "facets_note": "Modelled on Dwarf Fortress (~50 personality facets) but adapted, not copied: DF facets are 0-100 with a separate beliefs layer; Ewil uses 0-10, no beliefs layer, and every facet must be consumed by at least one action affinity or system rule (see action_affinities; panic, emotional_outburst, hold_steady, endure, obey and keep_secret are system rules, not scored actions)."
   },
   "score": "score(action) = w_need * need(action) + w_memory * memory(action) + w_reputation * reputation(action) + w_goal * goal(action) + w_schedule * schedule(action) + w_personality * personality(action). Each term is normalized to 0..1 before weighting.",
   "source_doc": "ecs-architecture.md v2.0, section 5",
-  "version": 2,
+  "version": 3,
   "weights": {
     "w_goal": 0.15,
     "w_memory": 0.15,
