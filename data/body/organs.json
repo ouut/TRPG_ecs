@@ -2,6 +2,14 @@
   "id": "organs",
   "max_hp_formula": "max_hp = 20 * (0.5 * heart_health + 0.3 * lung_health + 0.2 * brain_health)",
   "note": "No single constitution modifier (v1.3). Body is three layers: systems -> organs -> tissues, each a BodyPart sub-entity. Organ health = BodyPart.hp / max_hp. Brain or heart at zero = death, no need to wait for whole-body hp to reach zero.",
+  "recovery": {
+    "note": "DRAFT first-pass values (ecs-architecture.md section 2.6). Organs recover, not only take damage: rest and treatment are the generate edges for BodyPart hp. Tune in simulation per section 11.",
+    "rest_hp_per_10_ticks": 1,
+    "rest_requires": "resting or sleeping",
+    "severed_recovery": "none natural; requires prosthetic or regeneration trait (see TraitDef)",
+    "treatment_hp_per_action": 5,
+    "treatment_requires": "bandage, herb, salve, or doctor treatment (medicine skill)"
+  },
   "organs_v1": [
     {
       "at_zero": "死亡",
